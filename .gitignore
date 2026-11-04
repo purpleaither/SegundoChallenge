@@ -1,0 +1,18 @@
+# Ambientes virtuais
+.venv/
+venv/
+
+# Python
+__pycache__/
+*.pyc
+
+# Banco vetorial (gerado por rag/ingestao.py)
+rag/chroma_db/
+
+# Sistema / editores
+.DS_Store
+.vscode/
+.idea/
+
+# Segredos
+.env
