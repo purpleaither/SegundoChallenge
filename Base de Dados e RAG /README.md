@@ -1,4 +1,4 @@
-# RAG do Assistente do DF
+# RAG 
 
 Este diretório contém a implementação única do RAG: leitura e validação da base, preparação de documentos, busca vetorial, geração de respostas e comandos de ingestão e avaliação. A API importa os módulos daqui.
 
