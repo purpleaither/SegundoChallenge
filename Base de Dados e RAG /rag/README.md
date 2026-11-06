@@ -1,4 +1,4 @@
-# Histórico de alterações do RAG e da interface
+# Alterações feita no RAG
 
 Este documento resume o que foi alterado, o que está ativo e o que permanece fora do escopo atual.<br>
 
