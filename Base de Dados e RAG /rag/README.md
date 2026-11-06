@@ -1,4 +1,4 @@
-# Alterações feita no RAG
+# Alterações feitas no RAG
 
 Este documento resume o que foi alterado, o que está ativo e o que permanece fora do escopo atual.<br>
 
