@@ -1,4 +1,4 @@
-# SegundoChallenge
+# Bot Auxílios Para Pessoas de Baixa Renda
 
 Assistente de orientação sobre programas sociais federais, com recuperação em ChromaDB, geração local no Ollama e avaliação com RAGAS.
 
