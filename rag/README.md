@@ -1,7 +1,8 @@
-# Base de Conhecimento + Protótipo de Recuperação (G7, Semana 2)
+# Base de Conhecimento + Recuperação e Geração RAG (G7, Semanas 2 e 3)
 
 Assistente Virtual Tira-Dúvidas: dada uma pergunta em linguagem popular, recupera os trechos
-mais relevantes de uma base curada de programas sociais.
+mais relevantes de uma base curada de programas sociais e gera respostas ancoradas nas evidências
+usando uma LLM local via Ollama, comparando **LLM Pura × LLM com RAG**.
 
 ## Como rodar
 
@@ -15,11 +16,19 @@ python3 -m venv .venv                     # uma vez só
 .venv/bin/python ingestao.py              # monta a base e o banco vetorial (rodar de novo se o CSV mudar)
 .venv/bin/python buscar.py "Estou desempregada e tenho três filhos, tenho direito a algum auxílio?"
 .venv/bin/python buscar.py --trechos "..."  # mostra os trechos crus recuperados, com score (demo técnica)
-.venv/bin/python avaliar.py               # métricas de recuperação
+.venv/bin/python buscar.py --llm "..."      # gera resposta com LLM local (Ollama) ancorada no RAG
+.venv/bin/python avaliar.py               # métricas de recuperação (Recall@4)
+
+# Semana 3: Comparação LLM Pura (sem contexto) × LLM com RAG (ChromaDB)
+.venv/bin/python comparar.py "tem ajuda para comprar o botijão de gás?" # compara uma pergunta no terminal
+.venv/bin/python comparar.py              # roda a bateria completa e gera relatorio_comparacao.md
+.venv/bin/python comparar.py --modelo qwen2.5:3b --limite 4 # escolhe o modelo e limita o nº de casos
 ```
 
-Na primeira execução, o Chroma baixa o modelo de embeddings (~80 MB). Depois disso, tudo roda
-offline, sem chave de API e sem custo.
+Na primeira execução, o Chroma baixa o modelo de embeddings (~80 MB). Para os comandos de geração
+(`comparar.py` e `buscar.py --llm`), basta ter o [Ollama](https://ollama.com) ativo localmente
+(`ollama serve`) com um modelo instalado (ex.: `ollama pull qwen2.5:3b` ou `ollama pull llama3.2:3b`).
+Tudo roda 100% offline, sem chave de API e sem custo.
 
 ## Arquivos
 
@@ -29,8 +38,10 @@ offline, sem chave de API e sem custo.
 | `ingestao.py` | Pipeline de ingestão: CSV → documentos → chunks → embeddings → ChromaDB |
 | `base/*.md` | Base curada: **42 documentos-fonte**, um por programa (gerados pela ingestão) |
 | `chroma_db/` | Banco vetorial persistido em disco |
-| `buscar.py` | Protótipo de recuperação (consulta → top-4 trechos) |
-| `avaliar.py` | 20 perguntas de teste com o programa esperado |
+| `buscar.py` | Protótipo de recuperação e geração (`--trechos` e `--llm`) |
+| `avaliar.py` | 21 perguntas de teste com o programa esperado + 4 fora do escopo |
+| `comparar.py` | Integração com Ollama (`temperature=0.0`) e comparação **LLM Pura × RAG** |
+| `relatorio_comparacao.md` | Relatório comparativo gerado automaticamente por `comparar.py` |
 
 ## Base curada
 
@@ -50,15 +61,16 @@ flowchart LR
         C --> D[Embeddings<br/>all-MiniLM-L6-v2]
         D --> E[(ChromaDB<br/>126 vetores)]
     end
-    subgraph Consulta["Consulta (buscar.py)"]
+    subgraph Consulta["Consulta e Geração (buscar.py / comparar.py)"]
         P[Pergunta do cidadão] --> Q[Expansão de fala popular<br/>dicionário de sinônimos]
         Q --> R[Embedding da pergunta]
         R --> S[Busca por similaridade<br/>cosseno, top-4]
         E --> S
         S --> G[Agrupa trechos<br/>por programa]
-        G --> T[Resposta em texto simples<br/>com base legal + aviso]
+        G --> T[Ficha integral do programa<br/>O que é + Quem pode + Legislação]
+        T --> U[Ollama LLM local<br/>temperature=0.0 + Prompt RAG estrito]
+        U --> V[Resposta ancorada RIA02<br/>ou Abstenção ativa RIA07]
     end
-    T -.-> U[Semana 3: LLM gera resposta<br/>a partir dos trechos]
 ```
 
 ### Pipeline de ingestão
@@ -101,12 +113,36 @@ um modelo de texto fixo a partir do documento de cada programa, sem LLM.
 - Erros: "quero fazer faculdade…" (trouxe Sisu e PNAES, que também são pertinentes, mas não o FIES
   Social) e "cesta de comida… fome" (não trouxe a Ação de Distribuição de Alimentos).
 
+## Comparação LLM Pura × RAG (`comparar.py` — Semana 3)
+
+O módulo `comparar.py` conecta a recuperação no ChromaDB a uma LLM local via API HTTP do **Ollama**
+(`http://localhost:11434/api/chat`, usando apenas `urllib.request` da biblioteca padrão e
+`temperature=0.0` conforme mitigação **MR01**).
+
+Dois modos são executados e avaliados lado a lado:
+
+1. **LLM Pura (`responder_llm_pura`)**: recebe apenas a pergunta e o papel do assistente, respondendo
+   com o conhecimento paramétrico do modelo.
+2. **LLM com RAG (`responder_rag`)**: recebe os documentos completos dos `TOP_K=4` programas
+   recuperados de `base/*.md` e instruções estritas para:
+   - **Ancoragem estrita (RIA02)**: usar exclusivamente os dados da base homologada, citando órgão
+     responsável, lei base, regulamentação e atualizações normativas de 2024–2026 (ex.: *Gás do Povo*
+     pela Lei nº 15.348/2026, *Luz do Povo* pela Lei nº 15.235/2025, biometria do BPC pela Portaria
+     Conjunta MDS/INSS nº 36/2026);
+   - **Transparência sobre lacunas**: informar quando o documento oficial traz critérios parciais ou
+     não especificados, sem inventar regras;
+   - **Abstenção ativa e limites institucionais (RIA07 / P02)**: recusar perguntas fora do escopo
+     socioassistencial (mesmo que o banco vetorial devolva trechos com score ~0,50) e recusar pedidos
+     operacionais proibidos (consultar CPF/CadÚnico, cadastrar ou aprovar benefício).
+
+O resultado detalhado com métricas agregadas e respostas lado a lado é salvo em
+`relatorio_comparacao.md`.
+
 ## Limitações e próximos passos
 
-- **Abstenção (RIA07) ainda não é possível só pelo score:** com esse modelo, perguntas fora do
-  escopo ("bolo de cenoura") chegam a 0,56 de similaridade, igual ao menor score de perguntas
-  válidas. Próximo passo: trocar por um modelo de embeddings **multilíngue** (ex.:
-  `paraphrase-multilingual-MiniLM-L12-v2`) e recalibrar com `avaliar.py`.
+- **Abstenção no retriever vs. na geração:** o modelo de embeddings `all-MiniLM-L6-v2` ainda atribui
+  scores até 0,56 a perguntas fora de escopo ("bolo de cenoura"), mas o prompt de RAG estrito em
+  `comparar.py` resolve a **abstenção ativa (RIA07)** na camada de geração ao inspecionar a
+  pertinência temática antes de usar os trechos.
 - A base ainda não tem **documentos exigidos** nem **unidades de atendimento** (RF04/RF05), nem
   programas **distritais** (SEDES-DF, CODHAB, SEEDF, como o Prato Cheio).
-- Semana 3: ligar uma LLM aos trechos recuperados e comparar LLM pura × RAG.
