@@ -7,7 +7,7 @@ Este diretório contém a implementação única do RAG: leitura e validação d
 1. **Fonte de conhecimento:** `../programas_sociais_legislacao_links_oficiais.csv`, com 42 programas federais e 22 colunas, fornece os dados estruturados. Os arquivos Markdown em `base/` são documentos derivados dos registros, não fontes independentes. O coletor `baixar_fontes.py` baixa textos legislativos integrais de URLs oficiais distintas e grava as fontes em `fontes/`; nesta coleta, 27 páginas HTML foram validadas e indexadas.
 2. **Tratamento e chunking:** o pipeline valida esquema, campos essenciais e URLs oficiais; transforma cada programa em quatro seções semânticas e cria 168 trechos estruturados. Também divide os textos legislativos baixados em trechos de até 1.200 caracteres, com sobreposição de 180 caracteres e ajuste por espaço. Cada trecho é contextualizado com o programa e a fonte.
 3. **Embeddings:** Ollama executa `bge-m3` para converter os trechos e as perguntas (após expansão de alguns termos) em vetores. A ingestão envia os trechos em lotes de até 32; a busca usa o mesmo modelo de embedding.
-4. **Banco vetorial:** ChromaDB persiste esses vetores usando distância cosseno. No Windows, o local padrão é `%LOCALAPPDATA%\AssistenteVirtualDF\vetor-v2`; em outros sistemas, é `Dados/vetor-v2/`. `VECTOR_DB_PATH` permite configurar outro local. O índice é derivado e pode ser recriado a partir do CSV e das fontes baixadas.
+4. **Banco vetorial:** ChromaDB persiste esses vetores usando distância cosseno. No Windows, o local padrão é `%LOCALAPPDATA%\AssistenteVirtualDF\vetor-v2`; em outros sistemas, é `BasedeDadoseRAG/vetor-v2/`. `VECTOR_DB_PATH` permite configurar outro local. O índice é derivado e pode ser recriado a partir do CSV e das fontes baixadas.
 5. **Recuperação e geração:** o RAG expande alguns termos populares, busca trechos, limita distância, filtra a versão atual e deduplica por programa. Ollama executa `qwen2.5:3b` para redigir uma resposta com as fontes recuperadas.
 6. **Aplicação:** a API entrega a resposta e as referências ao front-end.
 
@@ -35,7 +35,7 @@ flowchart LR
 
 ## O que já foi feito no RAG
 
-- Centralização do código de RAG em `Dados/rag/`; não há uma segunda implementação usada pelo back-end.
+- Centralização do código de RAG em `BasedeDadoseRAG/rag/`; não há uma segunda implementação usada pelo back-end.
 - Validação do CSV e preservação explícita de critérios e público-alvo ausentes ou parciais.
 - Coleta de textos legislativos integrais apenas de domínios oficiais, com validação do conteúdo e aviso explícito para links indisponíveis ou formatos não suportados.
 - Divisão por seções semânticas, com o programa e a seção no contexto de cada trecho.
