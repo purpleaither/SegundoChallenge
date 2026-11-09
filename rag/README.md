@@ -140,6 +140,31 @@ O resultado detalhado com métricas agregadas e respostas lado a lado é salvo e
 
 ## Avaliação com RAGAS (Ollama local)
 
+### Resultados da bateria completa
+
+As médias abaixo usam os 21 casos dentro do escopo, com `qwen2.5:3b` como gerador
+e juiz. Os quatro casos fora do escopo são avaliados separadamente.
+
+| Métrica RAGAS | Média | Casos avaliados |
+|---|---:|---:|
+| Faithfulness | 0.543 | 21 |
+| Context Utilization | 0.595 | 21 |
+| Context Precision | 0.421 | 21 |
+| Context Recall | 0.888 | 21 |
+
+| Indicador próprio do projeto | Resultado | Taxa |
+|---|---:|---:|
+| Programa esperado recuperado no top-4 | 19/21 | 90,5% |
+| Abstenção fora do escopo | 1/4 | 25,0% |
+| Falhas técnicas após a retomada | 0/84 notas | 0,0% |
+
+As notas são exploratórias e as referências precisam de revisão humana.
+Consulte o [relatório com as tabelas por pergunta](avaliacao/resultados_completos/relatorio.md)
+e o [CSV da bateria completa](avaliacao/resultados_completos/metricas.csv).
+Os arquivos em `avaliacao/resultados/` correspondem ao teste inicial de duas perguntas.
+
+### Executar a avaliação
+
 O workflow em `avaliar_ragas.py` complementa o acerto@4 de `avaliar.py`.
 Execute os comandos dentro de `rag/`, com o Ollama ativo e a base já ingerida:
 
