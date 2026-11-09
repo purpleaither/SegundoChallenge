@@ -257,6 +257,11 @@ def chamar_ollama(
 
 def montar_contexto(programas: list[dict]) -> str:
     """Lê os arquivos .md dos programas recuperados e monta o bloco estruturado de evidências."""
+    return "\n\n".join(montar_contextos(programas))
+
+
+def montar_contextos(programas: list[dict]) -> list[str]:
+    """Retorna as mesmas evidências da geração, separadas e na ordem recuperada."""
     blocos = []
     for i, item in enumerate(programas, 1):
         arquivo = item["meta"]["arquivo"]
@@ -270,7 +275,7 @@ def montar_contexto(programas: list[dict]) -> str:
             f"URL oficial: {meta['url']}\n\n"
             f"{corpo.strip()}"
         )
-    return "\n\n".join(blocos)
+    return blocos
 
 
 def responder_llm_pura(
