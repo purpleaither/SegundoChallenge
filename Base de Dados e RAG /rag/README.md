@@ -38,7 +38,6 @@ O CSV continua sendo a fonte dos dados estruturados; os textos em `Dados/rag/fon
 - O CSV e os dados-fonte não foram alterados nesta reorganização da interface.
 - A base tem 27 textos legislativos integrais coletados e indexados de páginas oficiais. Dois links em PDF não são extraídos e uma página retornou erro temporário.
 - A cobertura e a revisão humana das regras de elegibilidade continuam parciais; os textos legais não substituem regras operacionais atualizadas nem um catálogo completo do DF.
-- A base atual cobre programas federais; não é um catálogo completo de benefícios do Distrito Federal.
 - O acerto@5 mede a posição do programa esperado nos resultados recuperados, não a precisão factual de cada resposta do modelo.
 - O chat continua disponível sem autenticação; as telas de conta são apenas um protótipo desativado.
 
