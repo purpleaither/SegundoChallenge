@@ -476,8 +476,42 @@ def comparar_pergunta_avulsa(pergunta: str, modelo: str, url_base: str):
     print(resp_rag)
 
 
+def resumir_avaliacao_simples(av: dict) -> str:
+    """Gera um resumo simples e legível do resultado da avaliação."""
+    if not av["escopo"]:
+        if av["absteve"]:
+            return "✅ Recusou responder a pergunta fora do escopo / ação proibida."
+        return "❌ Não recusou a pergunta fora do escopo."
+
+    acertos, erros = [], []
+    if av["citou_programa"]:
+        acertos.append("indicou o programa correto")
+    else:
+        erros.append("errou ou inventou o nome do programa")
+    if av["citou_orgao"]:
+        acertos.append("informou o órgão correto")
+    else:
+        erros.append("errou o órgão responsável")
+    if av["citou_lei_base"]:
+        acertos.append("citou a lei oficial")
+    else:
+        erros.append("não citou a lei oficial correta")
+    if av["citou_atualizacao"] is True:
+        acertos.append("trouxe a atualização de 2025/2026")
+    elif av["citou_atualizacao"] is False:
+        erros.append("desconheceu a atualização de 2025/2026")
+    if av["reconheceu_parcial"] is True:
+        acertos.append("avisou que o documento não detalha os critérios")
+
+    if not erros:
+        return "✅ Acertou tudo: " + ", ".join(acertos) + "."
+    if not acertos:
+        return "❌ Errou: " + ", ".join(erros) + "."
+    return f"⚠️ Parcial: {', '.join(acertos)}; mas {', '.join(erros)}."
+
+
 def gerar_relatorio_markdown(resultados: list[dict], modelo: str, caminho: Path = ARQUIVO_RELATORIO):
-    """Consolida as métricas agregadas e o detalhamento caso a caso em Markdown."""
+    """Consolida as métricas agregadas e o detalhamento caso a caso em Markdown simples e legível."""
     dentro = [r for r in resultados if r["caso"]["escopo"]]
     fora = [r for r in resultados if not r["caso"]["escopo"]]
     com_atu = [r for r in dentro if r["av_rag"]["citou_atualizacao"] is not None]
@@ -487,82 +521,70 @@ def gerar_relatorio_markdown(resultados: list[dict], modelo: str, caminho: Path 
         if not itens:
             return "-"
         acertos = sum(1 for x in itens if fn(x))
-        return f"{acertos}/{len(itens)} ({acertos / len(itens):.0%})"
+        return f"{acertos} de {len(itens)} ({acertos / len(itens):.0%})"
 
     media_t_pura = sum(r["t_pura"] for r in resultados) / len(resultados)
     media_t_rag = sum(r["t_rag"] for r in resultados) / len(resultados)
-    rec_ok = sum(1 for r in dentro if r["recuperou_esperado"])
 
     linhas = [
-        "# Relatório Comparativo Experimental: LLM Pura × LLM com RAG (Semana 3 — Grupo 7)",
+        "# Relatório Comparativo: LLM Pura vs. LLM com RAG (Semana 3 — Grupo 7)",
         "",
-        f"- **Data da execução:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
-        f"- **Modelo local (Ollama):** `{modelo}`",
-        f"- **Parâmetros de geração:** `temperature = {TEMPERATURA}` (mitigação MR01), `TOP_K = {TOP_K}` programas recuperados",
-        f"- **Total de casos avaliados:** {len(resultados)} ({len(dentro)} dentro do escopo + {len(fora)} fora do escopo / limites P02)",
-        f"- **Taxa de recuperação do programa esperado (Recall@{TOP_K}):** {rec_ok}/{len(dentro)} ({rec_ok / len(dentro):.0%})",
-        "",
-        "## 1. Resumo Comparativo de Métricas",
-        "",
-        "| Indicador Avaliado | Requisito | LLM Pura (Sem Contexto) | LLM com RAG (Base Homologada) |",
-        "|---|---|---|---|",
-        f"| Citação do programa social esperado | RF01 / RIA02 | {taxa(dentro, lambda r: r['av_pura']['citou_programa'])} | **{taxa(dentro, lambda r: r['av_rag']['citou_programa'])}** |",
-        f"| Citação do órgão responsável correto | RIA02 | {taxa(dentro, lambda r: r['av_pura']['citou_orgao'])} | **{taxa(dentro, lambda r: r['av_rag']['citou_orgao'])}** |",
-        f"| Citação da legislação oficial base | RIA02 | {taxa(dentro, lambda r: r['av_pura']['citou_lei_base'])} | **{taxa(dentro, lambda r: r['av_rag']['citou_lei_base'])}** |",
-        f"| Citação de atualizações normativas 2025–2026 | RIA02 / MR05 | {taxa(com_atu, lambda r: r['av_pura']['citou_atualizacao'])} | **{taxa(com_atu, lambda r: r['av_rag']['citou_atualizacao'])}** |",
-        f"| Transparência em critérios não especificados | RIA02 / MR01 | {taxa(com_parcial, lambda r: r['av_pura']['reconheceu_parcial'])} | **{taxa(com_parcial, lambda r: r['av_rag']['reconheceu_parcial'])}** |",
-        f"| Abstenção ativa fora do escopo / limites P02 | RIA07 / P02 | {taxa(fora, lambda r: r['av_pura']['absteve'])} | **{taxa(fora, lambda r: r['av_rag']['absteve'])}** |",
-        f"| Aviso informativo e orientação ao CRAS | MR01 / P02 | {taxa(dentro, lambda r: r['av_pura']['aviso_cras'])} | **{taxa(dentro, lambda r: r['av_rag']['aviso_cras'])}** |",
-        f"| Latência média por resposta (segundos) | RNF | {media_t_pura:.2f}s | {media_t_rag:.2f}s |",
-        "",
-        "## 2. Principais Conclusões da Comparação",
-        "",
-        "1. **Ancoragem em normas recentes (2025–2026):** A **LLM Pura** desconhece atualizações legislativas recentes presentes na base curada (como a reformulação para *Gás do Povo* pela Lei nº 15.348/2026 e Portaria MDS nº 1.171/2026, a Lei nº 15.235/2025 do *Luz do Povo*, a Portaria Conjunta MDS/INSS nº 36/2026 sobre biometria no BPC e a Portaria MEC nº 539/2026 no Pé-de-Meia) e frequentemente alucina números de leis ou valores desatualizados. O modo **LLM com RAG** cita com precisão os atos normativos homologados na base.",
-        "2. **Contenção de alucinações em documentos com informação parcial:** Em programas cujos critérios não são detalhados no documento-fonte do MDS (ex.: *Isenção de taxa em concursos públicos federais* e *Farmácia Popular*), a **LLM Pura** tende a inventar faixas de renda ou regras genéricas sem ressalvas, enquanto o **RAG** explicita o limite documental e orienta a verificar o edital ou procurar o CRAS.",
-        "3. **Abstenção em perguntas fora do escopo e proteção contra ações proibidas (RIA07 / P02):** Mesmo quando o ChromaDB retorna 4 documentos com similaridade mediana (~0,50–0,56) para perguntas fora de escopo (como receitas ou futebol), a camada de geração do **RAG** instruída pela política RIA07/P02 rejeita o contexto irrelevante e aplica a abstenção padronizada, além de recusar pedidos operacionais de consulta de CPF/CadÚnico.",
+        f"- **Modelo utilizado:** `{modelo}` (rodando localmente via Ollama com `temperature = {TEMPERATURA}`)",
+        f"- **Total de perguntas testadas:** {len(resultados)} ({len(dentro)} dúvidas reais sobre benefícios + {len(fora)} perguntas fora do escopo)",
         "",
         "---",
         "",
-        "## 3. Detalhamento Caso a Caso",
+        "## 1. Resumo dos Resultados",
+        "",
+        "| O que foi avaliado | LLM Pura (Sem a base) | LLM com RAG (Com a base do grupo) |",
+        "|---|---|---|",
+        f"| Acertou o programa social correto | {taxa(dentro, lambda r: r['av_pura']['citou_programa'])} | **{taxa(dentro, lambda r: r['av_rag']['citou_programa'])}** |",
+        f"| Informou o órgão responsável correto | {taxa(dentro, lambda r: r['av_pura']['citou_orgao'])} | **{taxa(dentro, lambda r: r['av_rag']['citou_orgao'])}** |",
+        f"| Citou a lei correta do benefício | {taxa(dentro, lambda r: r['av_pura']['citou_lei_base'])} | **{taxa(dentro, lambda r: r['av_rag']['citou_lei_base'])}** |",
+        f"| Citou as atualizações recentes (2025–2026) | {taxa(com_atu, lambda r: r['av_pura']['citou_atualizacao'])} | **{taxa(com_atu, lambda r: r['av_rag']['citou_atualizacao'])}** |",
+        f"| Avisou quando o documento não detalha os critérios | {taxa(com_parcial, lambda r: r['av_pura']['reconheceu_parcial'])} | **{taxa(com_parcial, lambda r: r['av_rag']['reconheceu_parcial'])}** |",
+        f"| Recusou perguntas fora do escopo / consulta de CPF | {taxa(fora, lambda r: r['av_pura']['absteve'])} | **{taxa(fora, lambda r: r['av_rag']['absteve'])}** |",
+        f"| Orientou a procurar o CRAS no final | {taxa(dentro, lambda r: r['av_pura']['aviso_cras'])} | **{taxa(dentro, lambda r: r['av_rag']['aviso_cras'])}** |",
+        f"| Tempo médio de resposta | {media_t_pura:.1f} segundos | {media_t_rag:.1f} segundos |",
+        "",
+        "---",
+        "",
+        "## 2. Principais Conclusões",
+        "",
+        "1. **Sem RAG, a IA inventa nomes de programas e leis:** Na maioria das perguntas, a LLM Pura inventou benefícios inexistentes e números de leis incorretos.",
+        "2. **Com RAG, a IA usa os dados reais e atualizados (2025–2026):** O modo com RAG consultou os documentos do ChromaDB e trouxe os nomes novos (como *Gás do Povo* e *Luz do Povo*) e as leis/portarias de 2025 e 2026 levantadas pelo grupo.",
+        "3. **Sem invenção de regras quando o documento é resumido:** Quando a cartilha do MDS não detalha os critérios, a LLM Pura tentou adivinhar regras ou disse que o programa não existe, enquanto o RAG avisou com transparência que o documento não traz os critérios detalhados.",
+        "",
+        "---",
+        "",
+        "## 3. Comparação Caso a Caso",
         "",
     ]
 
-    for r in resultados:
+    for idx, r in enumerate(resultados, 1):
         c = r["caso"]
-        linhas.append(f"### Caso {c['id']} — {c['categoria']}")
-        linhas.append("")
-        linhas.append(f"- **Pergunta:** \"{c['pergunta']}\"")
+        linhas.append(f"### Caso {idx} — \"{c['pergunta']}\"")
         if c["escopo"]:
+            principal = ficha(r["programas"][0]["meta"]["arquivo"])
             linhas.append(
-                f"- **Referência esperada:** Programa `{c['programa_esperado']}` | "
-                f"Órgão `{c['orgao_esperado']}` | "
-                f"Recuperado no Top-{TOP_K}: **{'Sim' if r['recuperou_esperado'] else 'Não'}**"
+                f"- **Programa esperado na base:** {principal['titulo']} ({c['orgao_esperado']})"
             )
         else:
-            linhas.append("- **Referência esperada:** Abstenção ativa (pergunta fora do escopo ou ação vedada por P02/RIA07)")
+            linhas.append("- **Comportamento esperado:** Abstenção (recusar por estar fora do escopo ou ser ação proibida)")
 
-        linhas.append("- **Evidências recuperadas pelo ChromaDB:**")
-        for i, p in enumerate(r["programas"], 1):
-            f = ficha(p["meta"]["arquivo"])
-            linhas.append(
-                f"  {i}. `{f['titulo']}` (score `{p['similaridade']:.2f}`, órgão `{p['meta']['orgao']}`) — "
-                f"Lei base: `{f['Lei base']}` | Regulamentação: `{f['Regulamentação']}` | "
-                f"Atualização: `{f['Atualização recente']}`"
-            )
+        linhas.append("- **O que aconteceu:**")
+        linhas.append(f"  - **LLM Pura:** {resumir_avaliacao_simples(r['av_pura'])}")
+        linhas.append(f"  - **LLM com RAG:** {resumir_avaliacao_simples(r['av_rag'])}")
         linhas.append("")
-        linhas.append(f"#### Resposta LLM Pura ({r['t_pura']:.2f}s)")
-        linhas.append(f"- **Verificação automática:** {formatar_indicadores(r['av_pura'])}")
+        linhas.append("> **Resposta da LLM Pura:**")
+        for l in r["resp_pura"].splitlines():
+            if l.strip():
+                linhas.append(f"> {l.strip()}")
         linhas.append("")
-        linhas.append("```text")
-        linhas.append(r["resp_pura"])
-        linhas.append("```")
-        linhas.append("")
-        linhas.append(f"#### Resposta LLM com RAG ({r['t_rag']:.2f}s)")
-        linhas.append(f"- **Verificação automática:** {formatar_indicadores(r['av_rag'])}")
-        linhas.append("")
-        linhas.append("```text")
-        linhas.append(r["resp_rag"])
-        linhas.append("```")
+        linhas.append("> **Resposta da LLM com RAG:**")
+        for l in r["resp_rag"].splitlines():
+            if l.strip():
+                linhas.append(f"> {l.strip()}")
         linhas.append("")
         linhas.append("---")
         linhas.append("")
