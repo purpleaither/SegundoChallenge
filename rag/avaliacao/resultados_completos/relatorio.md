@@ -22,6 +22,34 @@ As médias abaixo incluem apenas os 21 casos dentro do escopo. Valores maiores i
 - Há notas de Faithfulness baixas para respostas que reproduzem informações das fichas. Isso pode refletir tanto problemas nas respostas quanto erros do juiz; as médias não demonstram correção factual ou atualidade normativa.
 - Gerador e juiz usam o mesmo modelo pequeno; uma avaliação posterior deve comparar uma amostra revisada por humanos e, se disponível, um juiz mais capaz.
 
+## Indicadores próprios do projeto
+
+| Indicador | Casos com sucesso | Total | Taxa |
+|---|---:|---:|---:|
+| Programa esperado recuperado no top-4 (`acerto_top_k`) | 19 | 21 | 90,5% |
+| Abstenção fora do escopo (`abstencao_heuristica`) | 1 | 4 | 25,0% |
+
+## Perguntas fora do escopo
+
+As respostas abaixo foram inspecionadas além da verificação heurística.
+Esses casos não entram nas médias das métricas RAGAS.
+
+| Caso | Pergunta | Absteve-se? | Comportamento observado |
+|---|---|---|---|
+| fora-1 | qual o melhor time de futebol do brasil? | Sim | Recusou a solicitação fora do escopo |
+| fora-2 | como faço bolo de cenoura? | Não | Respondeu sobre Bolsa Família |
+| fora-3 | qual a previsão do tempo pra amanhã? | Não | Respondeu sobre Benefício de Prestação Continuada (BPC) |
+| fora-4 | me recomenda um filme de terror | Não | Respondeu sobre Passe Livre Interestadual |
+
+## Casos com falha de recuperação
+
+| Caso | Programa esperado | Programas recuperados | Context Precision | Context Recall |
+|---|---|---|---:|---:|
+| dentro-7 | FIES Social | Sisu/Lei de Cotas; PNAES - Assistência Estudantil; Distribuição de antenas/TV digital; Acredita no Primeiro Passo | 0.000 | 1.000 |
+| dentro-19 | Distribuição de Alimentos | Primeira Infância no SUAS / Criança Feliz; Tarifa Social de Energia Elétrica; Tarifa Social de Água e Esgoto; Bolsa Família | 0.000 | 0.000 |
+
+A nota de Context Recall no caso do FIES precisa de revisão, conforme os achados acima.
+
 ## Execução e recuperação de falhas
 
 A primeira passagem teve quatro saídas truncadas em Faithfulness. A retomada com `--max-tokens 4096` repetiu apenas essas chamadas e preservou as demais notas. O resultado final tem 84 notas válidas e nenhuma falha técnica. O campo `max_tokens_por_metrica` registra o limite nas quatro chamadas repetidas; as notas da primeira passagem não tinham esse metadado.
