@@ -138,7 +138,96 @@ Dois modos são executados e avaliados lado a lado:
 O resultado detalhado com métricas agregadas e respostas lado a lado é salvo em
 `relatorio_comparacao.md`.
 
-## Limitações e próximos passos
+## Avaliação com RAGAS (Ollama local)
+
+O workflow em `avaliar_ragas.py` complementa o acerto@4 de `avaliar.py`.
+Execute os comandos dentro de `rag/`, com o Ollama ativo e a base já ingerida:
+
+```bash
+.venv/bin/pip install -r requirements-avaliacao.txt
+# Se ainda não houver modelo instalado:
+ollama pull qwen2.5:3b
+.venv/bin/python avaliar_ragas.py preparar
+
+# Primeiro experimente poucos casos; use um modelo instalado no Ollama.
+.venv/bin/python avaliar_ragas.py coletar --modelo qwen2.5:3b --limite 2
+.venv/bin/python avaliar_ragas.py avaliar --juiz qwen2.5:3b
+
+# Para coletar todos os 25 casos, execute coletar novamente sem --limite.
+# Para preservar o teste inicial em arquivos separados:
+.venv/bin/python avaliar_ragas.py coletar --modelo qwen2.5:3b --amostras avaliacao/amostras_completas.jsonl
+.venv/bin/python avaliar_ragas.py avaliar --juiz qwen2.5:3b --amostras avaliacao/amostras_completas.jsonl --saida avaliacao/resultados_completos
+# Se houver falhas ou uma execução interrompida, preserve as notas válidas:
+.venv/bin/python avaliar_ragas.py avaliar --juiz qwen2.5:3b --amostras avaliacao/amostras_completas.jsonl --saida avaliacao/resultados_completos --retomar --max-tokens 4096
+```
+
+1. **Preparar:** cria `avaliacao/casos.jsonl` a partir das 21 perguntas dentro do
+   escopo e das quatro fora do escopo. Não sobrescreve um arquivo existente.
+   Opcionalmente preencha `reference` em cada caso dentro do escopo com uma resposta
+   esperada revisada pelo grupo, baseada nas fontes oficiais. O nome do programa
+   sozinho não é uma referência suficiente. Faça isso antes de coletar.
+2. **Coletar:** executa `responder_rag`, salvando resposta, documentos completos na
+   ordem da recuperação, modelo, data UTC, duração e acerto de recuperação em
+   `avaliacao/amostras.jsonl`. Uma nova coleta sobrescreve esse arquivo.
+3. **Avaliar:** usa as amostras salvas e um juiz explícito no Ollama; não gera novas
+   respostas. Salva `resultados.jsonl`, `metricas.csv` e `resumo.json` em
+   `avaliacao/resultados/`. Uma nova avaliação sobrescreve esses relatórios.
+
+Usamos os nomes das métricas do RAGAS, preservando seus identificadores nos relatórios:
+
+| Métrica RAGAS | Identificador no relatório | O que avalia |
+|---|---|---|
+| Faithfulness | `faithfulness` | Sustentação das afirmações pelos contextos |
+| Context Utilization | `context_utilization` | Relevância dos contextos em relação à resposta gerada, sem referência |
+| Context Precision | `context_precision` | Ordenação dos contextos relevantes em relação à referência |
+| Context Recall | `context_recall` | Cobertura das afirmações da referência pelos contextos |
+
+Os campos de avaliação também seguem a nomenclatura RAGAS: `user_input` (pergunta),
+`response` (resposta gerada), `retrieved_contexts` (lista ordenada de contextos) e
+`reference` (resposta esperada revisada). `reference` não é o nome do programa
+esperado nem uma lista de documentos.
+
+As 21 referências iniciais foram redigidas a partir dos documentos locais de
+`base/`, independentemente das respostas do modelo. Os metadados próprios
+`reference_source`, `reference_source_sha256` e `reference_status` registram a
+origem, a versão do documento e a ausência de validação externa. Elas avaliam
+aderência à base local; ainda precisam de revisão humana para servir como
+referências de correção factual e atualidade normativa. Não preencha `reference`
+com a resposta que o próprio RAG gerou.
+Cada referência cobre o programa esperado do teste. Perguntas amplas podem admitir
+outros programas válidos; resultados baixos nesses casos precisam de revisão,
+pois a referência não é necessariamente uma lista exaustiva de respostas válidas.
+
+Context Precision e Context Recall ficam vazias quando `reference` não foi
+preenchida. Answer Relevancy não está incluída nesta primeira
+versão, pois requer configurar também embeddings para o avaliador.
+
+As médias incluem apenas notas válidas e informam o número de avaliações e falhas.
+Falhas ficam registradas por pergunta e resultam em código de saída diferente de
+zero; não viram nota zero. Casos fora do escopo não entram nas médias RAGAS:
+registramos `abstencao_heuristica`, usando o detector textual existente, que deve
+ser conferido manualmente. A duração registrada é a retornada pelo pipeline,
+não inclui o tempo de avaliação do juiz.
+
+Você pode mudar caminhos com `--casos`, `--amostras` e `--saida`, e o servidor com
+`--url http://localhost:11434`. Para comparar juízes sobre as mesmas respostas,
+execute `avaliar` novamente com outro `--juiz` e outro `--saida`.
+`--retomar` exige as mesmas amostras e o mesmo juiz, reutiliza notas válidas e
+repete somente métricas ausentes ou com falha. O limite da saída do juiz é
+configurável com `--max-tokens` (padrão: 4096); `max_tokens_por_metrica` registra o
+limite nas novas avaliações. Notas antigas sem esse metadado não têm o limite
+registrado. Um limite maior evita saídas JSON truncadas em respostas extensas.
+Prefira um juiz diferente ou mais capaz que o gerador e revise uma amostra das
+notas em português. Modelos pequenos podem falhar na produção do JSON estruturado
+exigido pelo RAGAS. Uma nota alta de Faithfulness não comprova a atualidade da base.
+`acerto_top_k` e `abstencao_heuristica` são indicadores próprios do projeto,
+separados das métricas RAGAS.
+
+Referências: [Faithfulness](https://docs.ragas.io/en/latest/concepts/metrics/available_metrics/faithfulness/),
+[Context Precision e Context Utilization](https://docs.ragas.io/en/latest/concepts/metrics/available_metrics/context_precision/),
+[Context Recall](https://docs.ragas.io/en/latest/concepts/metrics/available_metrics/context_recall/).
+
+## Limitações do protótipo
 
 - **Abstenção no retriever vs. na geração:** o modelo de embeddings `all-MiniLM-L6-v2` ainda atribui
   scores até 0,56 a perguntas fora de escopo ("bolo de cenoura"), mas o prompt de RAG estrito em
