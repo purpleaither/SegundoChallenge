@@ -1,0 +1,34 @@
+{
+  "modelo_juiz": "qwen2.5:3b",
+  "amostras": 25,
+  "metricas": {
+    "faithfulness": {
+      "media": 0.543061568061568,
+      "avaliadas": 21,
+      "falhas": 0
+    },
+    "context_utilization": {
+      "media": 0.5952380951821429,
+      "avaliadas": 21,
+      "falhas": 0
+    },
+    "context_precision": {
+      "media": 0.4206349206,
+      "avaliadas": 21,
+      "falhas": 0
+    },
+    "context_recall": {
+      "media": 0.8879062736205593,
+      "avaliadas": 21,
+      "falhas": 0
+    }
+  },
+  "acerto_top_k": {
+    "taxa": 0.9047619047619048,
+    "casos": 21
+  },
+  "abstencao_heuristica": {
+    "taxa": 0.25,
+    "casos": 4
+  }
+}
