@@ -65,15 +65,15 @@ ollama pull qwen2.5:3b
 Baixe/atualize os textos legislativos e gere os vetores depois de modificar o CSV ou as fontes:
 
 ```powershell
-python .\Dados\rag\baixar_fontes.py
-python .\Dados\rag\ingestao.py
+python .\BasedeDadoseRAG\rag\baixar_fontes.py
+python .\BasedeDadoseRAG\rag\ingestao.py
 ```
 
 Consulte trechos ou avalie a recuperação@5:
 
 ```powershell
-python .\Dados\rag\buscar.py "Tem ajuda para comprar o botijão de gás?"
-python .\Dados\rag\avaliar.py
+python .\BasedeDadoseRAG\rag\buscar.py "Tem ajuda para comprar o botijão de gás?"
+python .\BasedeDadoseRAG\rag\avaliar.py
 ```
 
 `avaliar.py` mede se o programa esperado aparece nos primeiros cinco resultados; não mede a precisão factual das respostas geradas. Nesta revisão, o resultado foi **11/11 (100%)** para os casos de teste definidos. No Windows, o banco persistente fica em `%LOCALAPPDATA%\AssistenteVirtualDF\vetor-v2`; a recuperação requer `bge-m3` e a geração requer `qwen2.5:3b`. Use um caminho sem acentos ao configurar `VECTOR_DB_PATH` no Windows.
