@@ -1,0 +1,26 @@
+id,user_input,escopo,faithfulness,context_utilization,context_precision,context_recall,acerto_top_k,abstencao_heuristica,erros
+dentro-1,"Estou desempregada e tenho três filhos, tenho direito a algum auxílio?",True,0.3,0.9999999999,0.0,0.8571428571428571,True,,{}
+dentro-2,tem ajuda para comprar o botijão de gás?,True,0.4166666666666667,0.9999999999,0.7499999999625,1.0,True,,{}
+dentro-3,"minha conta de luz tá muito cara, tem desconto?",True,0.9,0.0,0.0,0.8,True,,{}
+dentro-4,tem desconto na conta de água?,True,0.875,0.9999999999,0.9999999999,1.0,True,,{}
+dentro-5,minha mãe é idosa e não tem renda nenhuma,True,0.0,0.7499999999625,0.7499999999625,0.75,True,,{}
+dentro-6,"meu filho é deficiente, tem algum benefício?",True,0.16666666666666666,0.9999999999,0.7499999999625,1.0,True,,{}
+dentro-7,quero fazer faculdade mas não tenho dinheiro,True,0.0,0.9999999999,0.0,1.0,False,,{}
+dentro-8,como faço pra não pagar a inscrição do enem?,True,0.0,0.0,0.9999999999,0.75,True,,{}
+dentro-9,tem isenção pra taxa de concurso?,True,0.4166666666666667,0.0,0.9999999999,1.0,True,,{}
+dentro-10,"meu filho tá no ensino médio, tem alguma ajuda?",True,1.0,0.0,0.0,1.0,True,,{}
+dentro-11,"quero comprar uma casa, tem programa do governo?",True,1.0,0.7499999999625,0.7499999999625,1.0,True,,{}
+dentro-12,preciso de remédio de graça,True,0.3,0.0,0.0,0.6,True,,{}
+dentro-13,onde consigo absorvente de graça?,True,1.0,0.9999999999,0.0,1.0,True,,{}
+dentro-14,moro na roça e falta água por causa da seca,True,0.6,0.9999999999,0.0,1.0,True,,{}
+dentro-15,"sou dona de casa, posso pagar o INSS mais barato?",True,0.8181818181818182,0.0,0.0,1.0,True,,{}
+dentro-16,deficiente pode viajar de ônibus de graça pra outro estado?,True,1.0,0.0,0.49999999995,1.0,True,,{}
+dentro-17,"quero abrir um negócio pequeno, tem microcrédito?",True,0.0,0.9999999999,0.9999999999,1.0,True,,{}
+dentro-18,preciso de internet pro meu filho estudar,True,1.0,0.9999999999,0.9999999999,1.0,True,,{}
+dentro-19,tem cesta de comida pra família passando fome?,True,0.8333333333333334,0.0,0.0,0.0,False,,{}
+dentro-20,"estou grávida, tem acompanhamento pro bebê?",True,0.0,0.9999999999,0.0,0.8888888888888888,True,,{}
+dentro-21,quais benefícios posso ter como mãe solteira de baixa renda?,True,0.7777777777777778,0.9999999999,0.3333333333,1.0,True,,{}
+fora-1,qual o melhor time de futebol do brasil?,False,,,,,,True,{}
+fora-2,como faço bolo de cenoura?,False,,,,,,False,{}
+fora-3,qual a previsão do tempo pra amanhã?,False,,,,,,False,{}
+fora-4,me recomenda um filme de terror,False,,,,,,False,{}
