@@ -1,0 +1,5 @@
+-r requirements.txt
+ragas>=0.4,<0.5
+openai>=1,<3
+# RAGAS 0.4 ainda importa ChatVertexAI, removido do community 0.4.
+langchain-community>=0.3.31,<0.4
