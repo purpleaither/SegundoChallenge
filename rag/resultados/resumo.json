@@ -1,0 +1,47 @@
+{
+  "T1": {
+    "programa_correto": 0.09523809523809523,
+    "lei_correta": 0.0,
+    "respostas_com_norma_sem_lastro": 0.2857142857142857,
+    "normas_sem_lastro_sobre_citadas": 1.0,
+    "abstencao_correta_fora": 1.0,
+    "abstencao_indevida_dentro": 0.7142857142857143,
+    "latencia_media_s": 1.143729564814799
+  },
+  "T2": {
+    "programa_correto": 0.9047619047619048,
+    "lei_correta": 0.9,
+    "respostas_com_norma_sem_lastro": 0.0,
+    "normas_sem_lastro_sobre_citadas": 0.0,
+    "abstencao_correta_fora": 0.0,
+    "abstencao_indevida_dentro": 0.0,
+    "latencia_media_s": 0.08863455870367168
+  },
+  "T3": {
+    "programa_correto": 0.6666666666666666,
+    "lei_correta": 0.05,
+    "respostas_com_norma_sem_lastro": 0.0,
+    "normas_sem_lastro_sobre_citadas": 0.0,
+    "abstencao_correta_fora": 1.0,
+    "abstencao_indevida_dentro": 0.047619047619047616,
+    "latencia_media_s": 7.238318208296328
+  },
+  "T4": {
+    "programa_correto": 0.7619047619047619,
+    "lei_correta": 0.1,
+    "respostas_com_norma_sem_lastro": 0.0,
+    "normas_sem_lastro_sobre_citadas": 0.0,
+    "abstencao_correta_fora": 1.0,
+    "abstencao_indevida_dentro": 0.0,
+    "latencia_media_s": 5.654244629666681
+  },
+  "T5": {
+    "programa_correto": 1.0,
+    "lei_correta": 1.0,
+    "respostas_com_norma_sem_lastro": 0.0,
+    "normas_sem_lastro_sobre_citadas": 0.0,
+    "abstencao_correta_fora": 1.0,
+    "abstencao_indevida_dentro": 0.0,
+    "latencia_media_s": 0.22023624537034805
+  }
+}

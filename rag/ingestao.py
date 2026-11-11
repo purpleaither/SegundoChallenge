@@ -9,7 +9,7 @@ from pathlib import Path
 import chromadb
 
 AQUI = Path(__file__).resolve().parent
-CSV = AQUI.parent / "programas_sociais_legislacao_links_oficiais.csv"
+CSV = AQUI.parent / "Base de Dados e RAG " / "programas_sociais_legislacao_links_oficiais.csv"  # a pasta termina com espaço
 PASTA_BASE = AQUI / "base"
 PASTA_DB = AQUI / "chroma_db"
 COLECAO = "beneficios"
@@ -26,15 +26,17 @@ def ou(valor: str, padrao: str = "Não especificado no documento de origem.") ->
 
 def gerar_documentos() -> list[Path]:
     """Etapa 1: cada linha do CSV vira um documento Markdown com 3 seções."""
+    # Lê o CSV antes de apagar a base: se o arquivo faltar, base/ continua intacta
+    with open(CSV, encoding="utf-8-sig", newline="") as f:
+        linhas = list(csv.DictReader(f))
     shutil.rmtree(PASTA_BASE, ignore_errors=True)
     PASTA_BASE.mkdir()
     arquivos = []
-    with open(CSV, encoding="utf-8-sig", newline="") as f:
-        for r in csv.DictReader(f):
-            nome = r["programa"]
-            if r["nome_atual_encontrado_2026"]:
-                nome += f" (nome atual: {r['nome_atual_encontrado_2026']})"
-            texto = f"""---
+    for r in linhas:
+        nome = r["programa"]
+        if r["nome_atual_encontrado_2026"]:
+            nome += f" (nome atual: {r['nome_atual_encontrado_2026']})"
+        texto = f"""---
 programa: {r['programa']}
 orgao: {r['orgao_responsavel']}
 esfera: {r['esfera']}
@@ -60,9 +62,9 @@ Regulamentação: {ou(r['regulamentacao_principal'], '-')}
 Atualização recente: {ou(r['atualizacao_normativa_recente'], '-')}
 Observações: {ou(r['observacoes_legislacao'], '-')}
 """
-            arquivo = PASTA_BASE / f"{slug(r['programa'])}.md"
-            arquivo.write_text(texto, encoding="utf-8")
-            arquivos.append(arquivo)
+        arquivo = PASTA_BASE / f"{slug(r['programa'])}.md"
+        arquivo.write_text(texto, encoding="utf-8")
+        arquivos.append(arquivo)
     return arquivos
 
 

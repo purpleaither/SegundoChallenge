@@ -1,0 +1,537 @@
+[
+  {
+    "resposta": "Para saber se você tem direito ao auxílio, você deve procurar orientação no CRAS ou em organizações semelhantes que atuam na área social. [1] Não há informação específica sobre um programa específico para essa situação no material disponível.",
+    "segundos": 9.543601708999631,
+    "recuperados": [
+      "Bolsa Família",
+      "Facultativo de Baixa Renda",
+      "Minha Casa, Minha Vida",
+      "Bolsa Verde"
+    ],
+    "pergunta": "Estou desempregada e tenho três filhos, tenho direito a algum auxílio?",
+    "esperado": "Bolsa Família",
+    "escopo": "dentro",
+    "programa_ok": false,
+    "lei_esperada": [
+      "14.601"
+    ],
+    "lei_ok": false,
+    "normas_citadas": [],
+    "normas_sem_lastro": [],
+    "absteve": false
+  },
+  {
+    "resposta": "O programa que pode ajudar a comprar botijão de gás é o Auxílio Gás do Povo (Auxílio Gás). Você deve procurar orientação no CRAS ou órgão responsável. [1]",
+    "segundos": 6.752885417000016,
+    "recuperados": [
+      "Auxílio Gás dos Brasileiros",
+      "Sisu/Lei de Cotas",
+      "Passe Livre Interestadual",
+      "Auxílio-Inclusão"
+    ],
+    "pergunta": "tem ajuda para comprar o botijão de gás?",
+    "esperado": "Auxílio Gás",
+    "escopo": "dentro",
+    "programa_ok": true,
+    "lei_esperada": [
+      "14.237"
+    ],
+    "lei_ok": false,
+    "normas_citadas": [],
+    "normas_sem_lastro": [],
+    "absteve": false
+  },
+  {
+    "resposta": "Para saber se você tem direito ao desconto na conta de energia elétrica (Tarifa Social), você deve procurar pelo CRAS ou ligar para o ANEEL. Você precisa estar inscrita no Cadastro Único e ter renda per capita até meio salário mínimo por pessoa, ou ser beneficiária do BPC. [1]",
+    "segundos": 9.347156457999972,
+    "recuperados": [
+      "Tarifa Social de Energia Elétrica",
+      "FIES Social",
+      "Bolsa Verde",
+      "Tarifa Social de Água e Esgoto"
+    ],
+    "pergunta": "minha conta de luz tá muito cara, tem desconto?",
+    "esperado": "Tarifa Social de Energia",
+    "escopo": "dentro",
+    "programa_ok": false,
+    "lei_esperada": [
+      "12.212",
+      "10.438"
+    ],
+    "lei_ok": false,
+    "normas_citadas": [],
+    "normas_sem_lastro": [],
+    "absteve": false
+  },
+  {
+    "resposta": "O programa que oferece desconto na conta de água é o Tarifa Social de Água e Esgoto [1]. Você deve procurar orientação no CRAS ou órgão responsável para saber se você está elegível.",
+    "segundos": 8.100879541999802,
+    "recuperados": [
+      "Tarifa Social de Água e Esgoto",
+      "Programa Cisternas",
+      "Tarifa Social de Energia Elétrica",
+      "FIES Social"
+    ],
+    "pergunta": "tem desconto na conta de água?",
+    "esperado": "Tarifa Social de Água",
+    "escopo": "dentro",
+    "programa_ok": true,
+    "lei_esperada": [
+      "14.898"
+    ],
+    "lei_ok": false,
+    "normas_citadas": [],
+    "normas_sem_lastro": [],
+    "absteve": false
+  },
+  {
+    "resposta": "O programa que pode te ajudar é o [1] Benefício de Prestação Continuada (BPC). Ele é destinado a pessoas sem meios de sustento próprio ou familiar, incluindo idosos. Você deve procurar orientação no CRAS para solicitar esse benefício.",
+    "segundos": 8.031461000000036,
+    "recuperados": [
+      "Benefício de Prestação Continuada (BPC)",
+      "Carteira da Pessoa Idosa",
+      "Tarifa Social de Água e Esgoto",
+      "Auxílio-Inclusão"
+    ],
+    "pergunta": "minha mãe é idosa e não tem renda nenhuma",
+    "esperado": "BPC",
+    "escopo": "dentro",
+    "programa_ok": true,
+    "lei_esperada": [
+      "8.742",
+      "15.077"
+    ],
+    "lei_ok": false,
+    "normas_citadas": [],
+    "normas_sem_lastro": [],
+    "absteve": false
+  },
+  {
+    "resposta": "[3] Órgão: MDS  \n# Auxílio-Inclusão  \n\nEste programa oferece recursos financeiros a pessoas com deficiência beneficiárias do BPC que ingressam no mercado de trabalho. Você pode pedir se seu filho é pessoa com deficiência e está recebendo o BPC, além de estar trabalhando.",
+    "segundos": 8.364760208000007,
+    "recuperados": [
+      "BPC na Escola",
+      "Facultativo de Baixa Renda",
+      "Auxílio-Inclusão",
+      "Benefício de Prestação Continuada (BPC)"
+    ],
+    "pergunta": "meu filho é deficiente, tem algum benefício?",
+    "esperado": "BPC",
+    "escopo": "dentro",
+    "programa_ok": true,
+    "lei_esperada": [
+      "8.742",
+      "15.077"
+    ],
+    "lei_ok": false,
+    "normas_citadas": [],
+    "normas_sem_lastro": [],
+    "absteve": false
+  },
+  {
+    "resposta": "Você pode pedir auxílio para a Sisu ou PNAES, que são programas do MEC para estudantes de baixa renda. Procure informações no CRAS da sua região sobre como se inscrever. [1],[2]",
+    "segundos": 7.45437420799999,
+    "recuperados": [
+      "Sisu/Lei de Cotas",
+      "PNAES - Assistência Estudantil",
+      "Distribuição de antenas/TV digital",
+      "Acredita no Primeiro Passo"
+    ],
+    "pergunta": "quero fazer faculdade mas não tenho dinheiro",
+    "esperado": "FIES Social",
+    "escopo": "dentro",
+    "programa_ok": false,
+    "lei_esperada": [
+      "10.260"
+    ],
+    "lei_ok": false,
+    "normas_citadas": [],
+    "normas_sem_lastro": [],
+    "absteve": false
+  },
+  {
+    "resposta": "Você pode pedir isenção da taxa do Enem através do INEP. Procure o CRAS ou órgão responsável para solicitar a isenção, pois é necessário comprovar que você atende aos critérios de isenção definidos pela Lei 13.656/2018 e pelo Decreto 6.593/2008.",
+    "segundos": 8.659596707999754,
+    "recuperados": [
+      "Isenção da taxa do Enem",
+      "Isenção de taxas sobre imóvel da União",
+      "Isenção de taxa em concursos públicos federais",
+      "Auxílio-Inclusão"
+    ],
+    "pergunta": "como faço pra não pagar a inscrição do enem?",
+    "esperado": "Enem",
+    "escopo": "dentro",
+    "programa_ok": true,
+    "lei_esperada": [],
+    "lei_ok": false,
+    "normas_citadas": [
+      "13656",
+      "6593"
+    ],
+    "normas_sem_lastro": [],
+    "absteve": false
+  },
+  {
+    "resposta": "[1] Isenção de taxa em concursos públicos federais existe, mas quem pode pedir e os critérios não estão especificados no documento de origem. Para mais informações, procure o CRAS ou o órgão responsável.",
+    "segundos": 6.859710625000389,
+    "recuperados": [
+      "Isenção de taxa em concursos públicos federais",
+      "Isenção de taxas sobre imóvel da União",
+      "Isenção da taxa do Enem",
+      "Descontos nos serviços do INPI"
+    ],
+    "pergunta": "tem isenção pra taxa de concurso?",
+    "esperado": "concursos públicos",
+    "escopo": "dentro",
+    "programa_ok": true,
+    "lei_esperada": [
+      "13.656"
+    ],
+    "lei_ok": false,
+    "normas_citadas": [],
+    "normas_sem_lastro": [],
+    "absteve": false
+  },
+  {
+    "resposta": "O programa que pode ajudar seu filho é o [1] Pé-de-Meia. Ele oferece apoio financeiro para estudantes do ensino médio público. Você deve verificar com o CRAS ou órgão responsável para saber se ele atende a sua situação específica.",
+    "segundos": 7.261380834000192,
+    "recuperados": [
+      "Pé-de-Meia",
+      "Carteira da Pessoa Idosa",
+      "Descontos nos serviços do INPI",
+      "Acredita no Primeiro Passo"
+    ],
+    "pergunta": "meu filho tá no ensino médio, tem alguma ajuda?",
+    "esperado": "Pé-de-Meia",
+    "escopo": "dentro",
+    "programa_ok": true,
+    "lei_esperada": [
+      "14.818"
+    ],
+    "lei_ok": false,
+    "normas_citadas": [],
+    "normas_sem_lastro": [],
+    "absteve": false
+  },
+  {
+    "resposta": "O Minha Casa, Minha Vida é um programa que pode te ajudar a comprar uma casa. Você precisa ter renda mensal bruta até R$ 5.000, conforme critérios atualizados. Para saber se você está apto, procure o CRAS ou o órgão responsável do seu município. [1]",
+    "segundos": 8.818305125000279,
+    "recuperados": [
+      "Minha Casa, Minha Vida",
+      "Bolsa Verde",
+      "Programa Cisternas",
+      "Isenção de taxas sobre imóvel da União"
+    ],
+    "pergunta": "quero comprar uma casa, tem programa do governo?",
+    "esperado": "Minha Casa",
+    "escopo": "dentro",
+    "programa_ok": true,
+    "lei_esperada": [
+      "14.620"
+    ],
+    "lei_ok": false,
+    "normas_citadas": [],
+    "normas_sem_lastro": [],
+    "absteve": false
+  },
+  {
+    "resposta": "O programa Farmácia Popular pode te ajudar com acesso a medicamentos gratuitos ou subsidiados. Você precisa procurar orientação no CRAS ou órgão responsável para saber se atende ao seu caso específico. [1]",
+    "segundos": 8.95110404099978,
+    "recuperados": [
+      "Farmácia Popular",
+      "Primeira Infância no SUAS / Criança Feliz",
+      "Tarifa Social de Água e Esgoto",
+      "Programa Cisternas"
+    ],
+    "pergunta": "preciso de remédio de graça",
+    "esperado": "Farmácia Popular",
+    "escopo": "dentro",
+    "programa_ok": true,
+    "lei_esperada": [
+      "10.858"
+    ],
+    "lei_ok": false,
+    "normas_citadas": [],
+    "normas_sem_lastro": [],
+    "absteve": false
+  },
+  {
+    "resposta": "Você pode procurar o CRAS ou a助助助助助助助助助助助助助助助助助助助助助助助助助助助助助助助",
+    "segundos": 7.3163741250000385,
+    "recuperados": [
+      "Dignidade Menstrual",
+      "Facultativo de Baixa Renda",
+      "Bolsa Família",
+      "Fomento às Atividades Produtivas Rurais"
+    ],
+    "pergunta": "onde consigo absorvente de graça?",
+    "esperado": "Dignidade Menstrual",
+    "escopo": "dentro",
+    "programa_ok": false,
+    "lei_esperada": [
+      "14.214"
+    ],
+    "lei_ok": false,
+    "normas_citadas": [],
+    "normas_sem_lastro": [],
+    "absteve": false
+  },
+  {
+    "resposta": "Você pode pedir ações de acesso à água para consumo ou produção [1] através do Programa Cisternas, que é voltado para famílias de baixa renda residentes na zona rural atingidas pela seca. Para saber mais sobre como solicitar, procure o CRAS ou o órgão responsável local.",
+    "segundos": 8.869414250000318,
+    "recuperados": [
+      "Programa Cisternas",
+      "Tarifa Social de Água e Esgoto",
+      "Farmácia Popular",
+      "Projeto Dom Hélder Câmara"
+    ],
+    "pergunta": "moro na roça e falta água por causa da seca",
+    "esperado": "Cisternas",
+    "escopo": "dentro",
+    "programa_ok": true,
+    "lei_esperada": [
+      "12.873"
+    ],
+    "lei_ok": false,
+    "normas_citadas": [],
+    "normas_sem_lastro": [],
+    "absteve": false
+  },
+  {
+    "resposta": "[2] Você pode se beneficiar com a Facultativo de Baixa Renda, um benefício previdenciário para pessoas sem renda própria que trabalham em casa. Para saber se você está apta, fale com o CRAS ou procure informações no INSS. A Lei base é a Lei nº 8.212/1991 e a Lei nº 12.470/2011 regulamentam essa modalidade.",
+    "segundos": 9.115063083000223,
+    "recuperados": [
+      "Minha Casa, Minha Vida",
+      "Facultativo de Baixa Renda",
+      "Programa Cisternas",
+      "Bolsa Verde"
+    ],
+    "pergunta": "sou dona de casa, posso pagar o INSS mais barato?",
+    "esperado": "Facultativo de Baixa Renda",
+    "escopo": "dentro",
+    "programa_ok": true,
+    "lei_esperada": [
+      "8.212",
+      "12.470"
+    ],
+    "lei_ok": true,
+    "normas_citadas": [
+      "8212",
+      "12470"
+    ],
+    "normas_sem_lastro": [],
+    "absteve": false
+  },
+  {
+    "resposta": "[2] Órgão: ANTT\n# Passe Livre Interestadual\n\nPessoas com deficiência podem usar o passe livre interestadual. Para mais informações, verifique com o órgão responsável ou procure pelo CRAS.",
+    "segundos": 6.051467875000071,
+    "recuperados": [
+      "BPC na Escola",
+      "Passe Livre Interestadual",
+      "Auxílio-Inclusão",
+      "Carteira da Pessoa Idosa"
+    ],
+    "pergunta": "deficiente pode viajar de ônibus de graça pra outro estado?",
+    "esperado": "Passe Livre",
+    "escopo": "dentro",
+    "programa_ok": true,
+    "lei_esperada": [
+      "8.899"
+    ],
+    "lei_ok": false,
+    "normas_citadas": [],
+    "normas_sem_lastro": [],
+    "absteve": false
+  },
+  {
+    "resposta": "O Primeiro Passo pode oferecer microcrédito para quem é microempreendedor popular [1]. Você deve verificar se atende aos critérios específicos do programa. Para mais informações, procure pelo CRAS ou o órgão responsável.",
+    "segundos": 7.71868912500031,
+    "recuperados": [
+      "Acredita no Primeiro Passo",
+      "Créditos Instalação - Reforma Agrária",
+      "FIES Social",
+      "Crédito Fundiário - Terra Brasil"
+    ],
+    "pergunta": "quero abrir um negócio pequeno, tem microcrédito?",
+    "esperado": "Acredita",
+    "escopo": "dentro",
+    "programa_ok": false,
+    "lei_esperada": [
+      "14.995"
+    ],
+    "lei_ok": false,
+    "normas_citadas": [],
+    "normas_sem_lastro": [],
+    "absteve": false
+  },
+  {
+    "resposta": "[2] Órgão: ANATEL\n\n## O que é\nAcesso à moradia, a infraestrutura e a serviços básicos.\n\nTipo de benefício: Equipamento/kit gratuito\n\nÓrgão responsável: ANATEL\n\n## Quem pode\nPúblico-alvo: Famílias de baixa renda inscritas no Cadastro Único.\nCritérios: Ser família de baixa renda inscrita no Cadastro Único.\n\nSituação do critério: Informação parcial no documento.",
+    "segundos": 11.98223175000021,
+    "recuperados": [
+      "Internet Brasil",
+      "Digitaliza Brasil - conversores de TV digital",
+      "Distribuição de antenas/TV digital",
+      "Telefone Popular"
+    ],
+    "pergunta": "preciso de internet pro meu filho estudar",
+    "esperado": "Internet Brasil",
+    "escopo": "dentro",
+    "programa_ok": false,
+    "lei_esperada": [
+      "14.351"
+    ],
+    "lei_ok": false,
+    "normas_citadas": [],
+    "normas_sem_lastro": [],
+    "absteve": false
+  },
+  {
+    "resposta": "FORA_DO_ESCOPO",
+    "segundos": 6.536738457999945,
+    "recuperados": [
+      "Primeira Infância no SUAS / Criança Feliz",
+      "Tarifa Social de Energia Elétrica",
+      "Tarifa Social de Água e Esgoto",
+      "Bolsa Família"
+    ],
+    "pergunta": "tem cesta de comida pra família passando fome?",
+    "esperado": "Distribuição de Alimentos",
+    "escopo": "dentro",
+    "programa_ok": false,
+    "lei_esperada": [
+      "1.023",
+      "10.593"
+    ],
+    "lei_ok": false,
+    "normas_citadas": [],
+    "normas_sem_lastro": [],
+    "absteve": true
+  },
+  {
+    "resposta": "Primeira Infância no SUAS / Criança Feliz é um programa para quem está grávida ou cuida de crianças pequenas. Você pode pedir atendimento nestes programas. [1]",
+    "segundos": 5.972315416999663,
+    "recuperados": [
+      "Primeira Infância no SUAS / Criança Feliz",
+      "Acredita no Primeiro Passo",
+      "Fomento às Atividades Produtivas Rurais",
+      "Auxílio Gás dos Brasileiros"
+    ],
+    "pergunta": "estou grávida, tem acompanhamento pro bebê?",
+    "esperado": "Primeira Infância",
+    "escopo": "dentro",
+    "programa_ok": true,
+    "lei_esperada": [
+      "8.742",
+      "13.257"
+    ],
+    "lei_ok": false,
+    "normas_citadas": [],
+    "normas_sem_lastro": [],
+    "absteve": false
+  },
+  {
+    "resposta": "Você pode procurar informações no Programa Bolsa Família [3], que é para famílias em situação de pobreza ou vulnerabilidade, incluindo mães solteiras. Mas para ter certeza, você deve falar com o CRAS da sua região.",
+    "segundos": 8.588714250000066,
+    "recuperados": [
+      "Facultativo de Baixa Renda",
+      "Programa Cisternas",
+      "Bolsa Família",
+      "Telefone Popular"
+    ],
+    "pergunta": "quais benefícios posso ter como mãe solteira de baixa renda?",
+    "esperado": "Bolsa Família",
+    "escopo": "dentro",
+    "programa_ok": true,
+    "lei_esperada": [
+      "14.601"
+    ],
+    "lei_ok": false,
+    "normas_citadas": [],
+    "normas_sem_lastro": [],
+    "absteve": false
+  },
+  {
+    "resposta": "FORA_DO_ESCOPO",
+    "segundos": 2.784456250000403,
+    "recuperados": [
+      "Internet Brasil",
+      "Digitaliza Brasil - conversores de TV digital",
+      "Acredita no Primeiro Passo",
+      "Bolsa Verde"
+    ],
+    "pergunta": "qual o melhor time de futebol do brasil?",
+    "escopo": "fora",
+    "absteve": true,
+    "normas_sem_lastro": []
+  },
+  {
+    "resposta": "FORA_DO_ESCOPO",
+    "segundos": 4.3180907499995556,
+    "recuperados": [
+      "Bolsa Família",
+      "Bolsa Verde",
+      "CEBAS-Educação (bolsas em entidades beneficentes)",
+      "FIES Social"
+    ],
+    "pergunta": "como faço bolo de cenoura?",
+    "escopo": "fora",
+    "absteve": true,
+    "normas_sem_lastro": []
+  },
+  {
+    "resposta": "FORA_DO_ESCOPO",
+    "segundos": 4.381656166000084,
+    "recuperados": [
+      "Benefício de Prestação Continuada (BPC)",
+      "Pé-de-Meia",
+      "Acredita no Primeiro Passo",
+      "Primeira Infância no SUAS / Criança Feliz"
+    ],
+    "pergunta": "qual a previsão do tempo pra amanhã?",
+    "escopo": "fora",
+    "absteve": true,
+    "normas_sem_lastro": []
+  },
+  {
+    "resposta": "FORA_DO_ESCOPO",
+    "segundos": 5.484566916999938,
+    "recuperados": [
+      "Passe Livre Interestadual",
+      "Programa Cisternas",
+      "Digitaliza Brasil - conversores de TV digital",
+      "Distribuição de antenas/TV digital"
+    ],
+    "pergunta": "me recomenda um filme de terror",
+    "escopo": "fora",
+    "absteve": true,
+    "normas_sem_lastro": []
+  },
+  {
+    "resposta": "FORA_DO_ESCOPO",
+    "segundos": 4.056074291000186,
+    "recuperados": [
+      "Acredita no Primeiro Passo",
+      "FIES Social",
+      "Bolsa Verde",
+      "Carteira da Pessoa Idosa"
+    ],
+    "pergunta": "como eu tiro o passaporte?",
+    "escopo": "fora",
+    "absteve": true,
+    "normas_sem_lastro": []
+  },
+  {
+    "resposta": "FORA_DO_ESCOPO",
+    "segundos": 4.113523041999997,
+    "recuperados": [
+      "Acredita no Primeiro Passo",
+      "Sisu/Lei de Cotas",
+      "Carteira da Pessoa Idosa",
+      "Descontos nos serviços do INPI"
+    ],
+    "pergunta": "quanto custa um celular novo?",
+    "escopo": "fora",
+    "absteve": true,
+    "normas_sem_lastro": []
+  }
+]

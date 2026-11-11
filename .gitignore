@@ -6,8 +6,11 @@ venv/
 __pycache__/
 *.pyc
 
-# Banco vetorial (gerado por rag/ingestao.py)
+# Banco vetorial (gerado por rag/ingestao.py e rag/experimentos.py)
 rag/chroma_db/
+
+# Logs de execução dos experimentos (os resultados ficam nos .json de rag/resultados/)
+rag/resultados/*.txt
 
 # Sistema / editores
 .DS_Store
