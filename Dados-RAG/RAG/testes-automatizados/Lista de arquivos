@@ -1,0 +1,5 @@
+test_rag.py
+test_fontes.py
+test_dataset.py
+test_avaliar_ragas.py
+executar_testes.py
