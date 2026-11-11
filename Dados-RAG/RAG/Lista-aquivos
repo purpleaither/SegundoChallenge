@@ -1,0 +1,15 @@
+requirements.txt [ X ]
+requirements-avaliacao.txt 
+readme-alteracoes.md
+rag.py
+ingestao.py [ X ]
+fontes.py
+dataset.py
+buscar.py [ X ]
+baixar_fontes.py
+avaliar_ragas.py
+avaliar.py [ X ]
+__init__.py
+README.md [ X ]
+
+NOVO - experimentos.py ConsolidacaoRag = SegundoChallenge/rag/
