@@ -32,6 +32,10 @@ FORA_DO_ESCOPO = [
     "como faço bolo de cenoura?",
     "qual a previsão do tempo pra amanhã?",
     "me recomenda um filme de terror",
+    "qual a capital da França?",
+    "como trocar o pneu de uma bicicleta?",
+    "escreva um poema sobre o mar",
+    "como fazer arroz soltinho?",
 ]
 
 

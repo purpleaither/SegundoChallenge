@@ -254,9 +254,37 @@ Referências: [Faithfulness](https://docs.ragas.io/en/latest/concepts/metrics/av
 
 ## Limitações do protótipo
 
-- **Abstenção no retriever vs. na geração:** o modelo de embeddings `all-MiniLM-L6-v2` ainda atribui
-  scores até 0,56 a perguntas fora de escopo ("bolo de cenoura"), mas o prompt de RAG estrito em
-  `comparar.py` resolve a **abstenção ativa (RIA07)** na camada de geração ao inspecionar a
-  pertinência temática antes de usar os trechos.
+- A classificação de escopo e a validação de evidências usam o gerador local e podem errar.
+  O pipeline faz até duas chamadas adicionais antes da geração. JSON inválido interrompe
+  a resposta com uma mensagem de falha de validação. Não há limiar arbitrário de similaridade.
 - A base ainda não tem **documentos exigidos** nem **unidades de atendimento** (RF04/RF05), nem
   programas **distritais** (SEDES-DF, CODHAB, SEEDF, como o Prato Cheio).
+
+## Abstenção estruturada
+
+`responder_rag(..., decisao=dicionario)` mantém o retorno de três itens e preenche
+`status`, `motivo` e `absteve`. As decisões distinguem `respondida`, `fora_do_escopo`,
+`limite_operacional`, `ambigua`, `sem_evidencia` e `falha_validacao`.
+A classificação precede a busca; só documentos aprovados pela checagem de evidências
+são enviados ao gerador. Os programas retornados continuam representando a busca
+completa, para permitir auditoria e medir recuperação.
+
+Novas coletas registram a decisão, `abstencao_fora_escopo` e `abstencao_indevida`.
+O segundo indicador conta qualquer não resposta em casos rotulados dentro do escopo,
+inclusive falhas de validação e falta de evidências; revise os motivos antes de
+concluir que todas são recusas erradas. `abstencao_heuristica` fica como indicador
+textual auxiliar. As durações agora incluem classificação, busca, validação e geração.
+
+Os relatórios históricos não foram recalculados. Para avaliar o novo comportamento,
+execute a partir de `rag/`, usando novos arquivos:
+
+```bash
+.venv/bin/python avaliar_ragas.py preparar --casos avaliacao/casos_abstencao.jsonl
+# Revise as referências e os rótulos dos novos casos antes da avaliação.
+.venv/bin/python avaliar_ragas.py coletar --casos avaliacao/casos_abstencao.jsonl --amostras avaliacao/amostras_abstencao.jsonl --modelo qwen2.5:3b
+.venv/bin/python avaliar_ragas.py avaliar --amostras avaliacao/amostras_abstencao.jsonl --saida avaliacao/resultados_abstencao --juiz qwen2.5:3b
+```
+
+Prefira um juiz diferente do gerador quando disponível. Para comparar a mesma bateria
+histórica, use `--casos avaliacao/casos.jsonl` na coleta, com novos caminhos de saída.
+Testes do fluxo sem serviços externos: `.venv/bin/python -m unittest discover -s tests -v`.

@@ -28,6 +28,14 @@ def preparar(args):
          "programa_esperado": esperado, "reference": None}
         for i, (pergunta, esperado) in enumerate(DENTRO_DO_ESCOPO, 1)
     ]
+    casos += [
+        {"id": "fronteira-1", "user_input": "Existe curso de culinária para gerar renda?",
+         "escopo": True, "reference": None},
+        {"id": "fronteira-2", "user_input": "A seca acabou com minha água, existe auxílio?",
+         "escopo": True, "reference": None},
+        {"id": "fronteira-3", "user_input": "Como funciona o cadastro no CadÚnico?",
+         "escopo": True, "reference": None},
+    ]
     casos += [{"id": f"fora-{i}", "user_input": pergunta, "escopo": False,
                "reference": None} for i, pergunta in enumerate(FORA_DO_ESCOPO, 1)]
     # Não sobrescreve referências já revisadas pelo grupo.
@@ -50,10 +58,14 @@ def coletar(args):
     with args.amostras.open("w", encoding="utf-8") as arquivo:
         for caso in casos:
             print(f"Gerando {caso['id']}...", flush=True)
+            decisao = {}
             resposta, programas, duracao = responder_rag(
-                caso["user_input"], colecao=colecao, modelo=modelo, url_base=args.url,
+                caso["user_input"], colecao=colecao, modelo=modelo, url_base=args.url, decisao=decisao,
             )
-            linha = dict(caso, response=resposta, retrieved_contexts=montar_contextos(programas),
+            linha = dict(caso, decisao=decisao, abstencao=decisao["absteve"],
+                         abstencao_indevida=decisao["absteve"] if caso["escopo"] else None,
+                         abstencao_fora_escopo=decisao["absteve"] if not caso["escopo"] else None,
+                         response=resposta, retrieved_contexts=montar_contextos(programas),
                          modelo_gerador=modelo, duracao_s=duracao,
                          coletado_em=datetime.now(timezone.utc).isoformat(),
                          programas=[p["meta"]["programa"] for p in programas])
@@ -140,12 +152,12 @@ async def avaliar(args):
         resumo["metricas"][nome] = {"media": sum(valores) / len(valores) if valores else None,
                                     "avaliadas": len(valores),
                                     "falhas": sum(nome in r["erros"] for r in resultados)}
-    for campo in ("acerto_top_k", "abstencao_heuristica"):
+    for campo in ("acerto_top_k", "abstencao_heuristica", "abstencao_fora_escopo", "abstencao_indevida"):
         valores = [r[campo] for r in resultados if r.get(campo) is not None]
         resumo[campo] = {"taxa": sum(valores) / len(valores) if valores else None, "casos": len(valores)}
     (args.saida / "resumo.json").write_text(json.dumps(resumo, ensure_ascii=False, indent=2), encoding="utf-8")
     with (args.saida / "metricas.csv").open("w", encoding="utf-8", newline="") as arquivo:
-        campos = ["id", "user_input", "escopo", *nomes, "acerto_top_k", "abstencao_heuristica", "erros"]
+        campos = ["id", "user_input", "escopo", *nomes, "acerto_top_k", "abstencao_heuristica", "abstencao_fora_escopo", "abstencao_indevida", "erros"]
         escritor = csv.DictWriter(arquivo, fieldnames=campos, extrasaction="ignore", lineterminator="\n")
         escritor.writeheader()
         escritor.writerows(resultados)

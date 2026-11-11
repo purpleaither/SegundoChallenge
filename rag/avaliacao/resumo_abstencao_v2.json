@@ -1,0 +1,17 @@
+{
+  "modelo": "qwen2.5:3b",
+  "total": 25,
+  "abstencao_fora_escopo": {
+    "sucessos": 4,
+    "total": 4
+  },
+  "abstencao_dentro_escopo": {
+    "casos": 21,
+    "total": 21
+  },
+  "status": {
+    "sem_evidencia": 20,
+    "fora_do_escopo": 5
+  },
+  "duracao_total_s": 133.45673991799504
+}
