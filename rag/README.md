@@ -255,8 +255,9 @@ Referências: [Faithfulness](https://docs.ragas.io/en/latest/concepts/metrics/av
 ## Limitações do protótipo
 
 - A classificação de escopo e a validação de evidências usam o gerador local e podem errar.
-  O pipeline faz até duas chamadas adicionais antes da geração. JSON inválido interrompe
-  a resposta com uma mensagem de falha de validação. Não há limiar arbitrário de similaridade.
+  O fluxo RAG atual usa uma chamada de classificação e busca híbrida; a resposta é extrativa.
+  JSON inválido interrompe a resposta com uma mensagem de falha de validação. Os pesos
+  lexicais e o corte relativo de seleção são experimentais e precisam de mais avaliação.
 - A base ainda não tem **documentos exigidos** nem **unidades de atendimento** (RF04/RF05), nem
   programas **distritais** (SEDES-DF, CODHAB, SEEDF, como o Prato Cheio).
 
@@ -288,26 +289,62 @@ recalculadas para a v2; as notas da bateria histórica acima permanecem separada
 `responder_rag(..., decisao=dicionario)` mantém o retorno de três itens e preenche
 `status`, `motivo` e `absteve`. As decisões distinguem `respondida`, `fora_do_escopo`,
 `limite_operacional`, `ambigua`, `sem_evidencia` e `falha_validacao`.
-A classificação precede a busca; só documentos aprovados pela checagem de evidências
-são enviados ao gerador. Os programas retornados continuam representando a busca
-completa, para permitir auditoria e medir recuperação.
+A classificação precede a busca. Na v3, a busca combina BM25 nas fichas locais com
+similaridade vetorial e expansão de vocabulário. São selecionadas fichas com score
+lexical de pelo menos 75% do maior score recuperado; sem evidência lexical, há abstenção.
+O score combina título, resumo, público-alvo e tipo de benefício, favorecendo nomes
+oficiais cobertos pela consulta expandida. Os pesos e o corte relativo são heurísticas
+experimentais. O modelo não decide se o cidadão comprovou elegibilidade.
+
+A resposta é montada diretamente dos campos das fichas selecionadas: critérios parciais,
+leis e observações são preservados. Isso evita criar regras na geração, mas não valida
+a atualidade ou a correção da base. Os programas retornados representam a busca completa.
+Nas novas coletas, `retrieved_contexts` contém apenas as fichas usadas na resposta;
+`contextos_recuperados` preserva todos os candidatos para auditoria e `acerto_top_k`.
+`modo_resposta=extrativa` distingue este fluxo da geração livre das versões anteriores.
 
 Novas coletas registram a decisão, `abstencao_fora_escopo` e `abstencao_indevida`.
 O segundo indicador conta qualquer não resposta em casos rotulados dentro do escopo,
 inclusive falhas de validação e falta de evidências; revise os motivos antes de
 concluir que todas são recusas erradas. `abstencao_heuristica` fica como indicador
-textual auxiliar. As durações agora incluem classificação, busca, validação e geração.
+textual auxiliar. As durações da v3 incluem classificação, busca e montagem da resposta.
 
-Os relatórios históricos não foram recalculados. Para avaliar o novo comportamento,
+Os relatórios históricos não foram recalculados. Para uma nova bateria,
 execute a partir de `rag/`, usando novos arquivos:
 
 ```bash
 .venv/bin/python avaliar_ragas.py preparar --casos avaliacao/casos_abstencao.jsonl
 # Revise as referências e os rótulos dos novos casos antes da avaliação.
-.venv/bin/python avaliar_ragas.py coletar --casos avaliacao/casos_abstencao.jsonl --amostras avaliacao/amostras_abstencao.jsonl --modelo qwen2.5:3b
-.venv/bin/python avaliar_ragas.py avaliar --amostras avaliacao/amostras_abstencao.jsonl --saida avaliacao/resultados_abstencao --juiz qwen2.5:3b
+.venv/bin/python avaliar_ragas.py coletar --casos avaliacao/casos_abstencao.jsonl --amostras avaliacao/amostras_nova_bateria.jsonl --modelo qwen2.5:3b
+.venv/bin/python avaliar_ragas.py avaliar --amostras avaliacao/amostras_nova_bateria.jsonl --saida avaliacao/resultados_abstencao --juiz qwen2.5:3b
 ```
 
 Prefira um juiz diferente do gerador quando disponível. Para comparar a mesma bateria
 histórica, use `--casos avaliacao/casos.jsonl` na coleta, com novos caminhos de saída.
 Testes do fluxo sem serviços externos: `.venv/bin/python -m unittest discover -s tests -v`.
+
+## Resultados da abstenção — v3
+
+A v3 combina classificação de escopo no Ollama (`qwen2.5:3b`), busca híbrida
+BM25 + vetorial e respostas extraídas das fichas. Critérios parciais são preservados
+sem impedir a orientação; o sistema não confirma elegibilidade individual.
+
+| Indicador próprio | Resultado v3 |
+|---|---:|
+| Perguntas dentro do escopo respondidas | 21/21 |
+| Abstenções dentro do escopo | 0/21 |
+| Abstenções fora do escopo | 4/4 |
+| Programa esperado no top-4 e na resposta | 21/21 |
+
+A v3 corrigiu o excesso de abstenção observado na v2 nesta bateria. As respostas
+preservam os campos da base; isso não comprova a atualidade normativa da base nem
+correção em perguntas novas. A seleção foi ajustada com estes casos e precisa de
+avaliação mais ampla. As métricas RAGAS não foram recalculadas.
+
+Sete casos adicionais verificaram três paráfrases, pedidos operacionais e assuntos
+fora do escopo. Um benefício fictício foi recusado, mas com motivo de escopo em vez
+de falta de evidências; essa limitação está registrada no relatório.
+
+- [Relatório v3](avaliacao/relatorio_abstencao_v3.md)
+- [Resumo v3](avaliacao/resumo_abstencao_v3.json)
+- [Respostas v3](avaliacao/amostras_abstencao_v3_validada.jsonl)

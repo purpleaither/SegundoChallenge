@@ -1,6 +1,8 @@
 """Protótipo de recuperação: pergunta -> trechos mais relevantes do banco vetorial."""
 
 import re
+import math
+from collections import Counter
 import sys
 import unicodedata
 
@@ -51,7 +53,8 @@ def normalizar(texto: str) -> str:
 
 def expandir(pergunta: str) -> str:
     p = normalizar(pergunta)
-    extras = [v for chave, v in SINONIMOS.items() if re.search(rf"\b{chave}", p)]
+    extras = [v for chave, v in SINONIMOS.items() if re.search(rf"\b{chave}", p)
+              and not (chave == "casa" and "dona de casa" in p)]
     return " ".join([pergunta, *extras])
 
 
@@ -68,12 +71,55 @@ def buscar(colecao, pergunta: str, k: int = TOP_K) -> list[dict]:
     ]
 
 
+PALAVRAS_COMUNS = set("a o as os de da do das dos e em no na nos nas para por com um uma que tem tenho como posso meu minha filho filha filhos familia baixa renda programa programas social sociais federal federais pessoa pessoas ser nao ao sua seu pra mais algum alguma direito ajuda fazer quero preciso sobre estado outro conta comprar beneficio beneficios".split())
+
+
+def termos_busca(texto: str) -> list[str]:
+    return [t for t in re.findall(r"[a-z0-9]+", normalizar(texto))
+            if len(t) > 2 and t not in PALAVRAS_COMUNS]
+
+
 def buscar_programas(colecao, pergunta: str, k: int = TOP_K) -> list[dict]:
-    """Busca mais trechos e agrupa por programa, para não repetir o mesmo programa."""
-    programas = {}
-    for trecho in buscar(colecao, pergunta, k=k * 4):
-        programas.setdefault(trecho["meta"]["arquivo"], trecho)
-    return list(programas.values())[:k]
+    """Busca híbrida: BM25 nas fichas locais + similaridade vetorial.
+
+    O vocabulário popular é expandido antes das duas buscas. A evidência lexical
+    é registrada separadamente, sem interpretar similaridade como probabilidade.
+    """
+    vetoriais = buscar(colecao, pergunta, k=k * 4)
+    por_arquivo = {}
+    for item in vetoriais:
+        por_arquivo.setdefault(item["meta"]["arquivo"], item)
+    documentos = []
+    for arquivo in sorted(PASTA_BASE.glob("*.md")):
+        meta, corpo = ler_documento(arquivo)
+        f = ficha(arquivo.name)
+        # Título tem peso extra; público e benefício ajudam perguntas sem nome oficial.
+        texto = " ".join([f['titulo']] * 3 + [f['resumo'], f['Tipo de benefício'], f['Público-alvo']])
+        documentos.append((arquivo.name, meta, corpo, Counter(termos_busca(texto))))
+    if not documentos:
+        return []
+    consulta = set(termos_busca(expandir(pergunta)))
+    media = sum(sum(d[3].values()) for d in documentos) / len(documentos)
+    frequencias = {t: sum(t in d[3] for d in documentos) for t in consulta}
+    candidatos = []
+    for arquivo, meta, corpo, contagem in documentos:
+        tamanho = sum(contagem.values())
+        score = 0.0
+        for termo in consulta:
+            freq = contagem[termo]
+            if freq:
+                idf = math.log(1 + (len(documentos) - frequencias[termo] + 0.5) / (frequencias[termo] + 0.5))
+                score += idf * freq * 2.2 / (freq + 1.2 * (0.25 + 0.75 * tamanho / max(media, 1)))
+        nome = set(termos_busca(meta['programa']))
+        # Cobertura integral do nome oficial favorece programas identificados pela
+        # expansão, sem premiar apenas palavras compartilhadas como "Bolsa".
+        if nome and nome <= consulta:
+            score += 8.0
+        item = dict(por_arquivo.get(arquivo, {"texto": corpo, "meta": dict(meta, arquivo=arquivo), "similaridade": 0.0}))
+        item['relevancia_lexical'] = score
+        candidatos.append(item)
+    # BM25 recupera também fichas que ficaram fora do top vetorial.
+    return sorted(candidatos, key=lambda x: (x['relevancia_lexical'] + max(0, x['similaridade']) * 0.25), reverse=True)[:k]
 
 
 def ficha(arquivo: str) -> dict:

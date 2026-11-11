@@ -62,11 +62,16 @@ def coletar(args):
             resposta, programas, duracao = responder_rag(
                 caso["user_input"], colecao=colecao, modelo=modelo, url_base=args.url, decisao=decisao,
             )
-            linha = dict(caso, decisao=decisao, abstencao=decisao["absteve"],
+            utilizados = set(decisao.get("documentos_utilizados", []))
+            evidencias = [p for p in programas if p["meta"]["arquivo"] in utilizados]
+            linha = dict(caso, decisao=decisao,
+                         contextos_recuperados=montar_contextos(programas), abstencao=decisao["absteve"],
                          abstencao_indevida=decisao["absteve"] if caso["escopo"] else None,
                          abstencao_fora_escopo=decisao["absteve"] if not caso["escopo"] else None,
-                         response=resposta, retrieved_contexts=montar_contextos(programas),
-                         modelo_gerador=modelo, duracao_s=duracao,
+                         response=resposta, retrieved_contexts=montar_contextos(evidencias),
+                         modo_resposta="extrativa",
+                         modelo_gerador=modelo, modelo_classificador=modelo, duracao_s=duracao,
+                         relevancia_lexical={p["meta"]["arquivo"]: p.get("relevancia_lexical") for p in programas},
                          coletado_em=datetime.now(timezone.utc).isoformat(),
                          programas=[p["meta"]["programa"] for p in programas])
             if caso["escopo"]:

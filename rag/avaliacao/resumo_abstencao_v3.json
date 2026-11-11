@@ -1,0 +1,23 @@
+{
+  "modelo_classificador": "qwen2.5:3b",
+  "modo_resposta": "extrativa",
+  "casos": 25,
+  "respostas_dentro": 21,
+  "abstencoes_dentro": 0,
+  "abstencoes_fora": 4,
+  "programa_esperado_top_k": 21,
+  "programa_esperado_na_resposta": 21,
+  "status": {
+    "respondida": 21,
+    "fora_do_escopo": 4
+  },
+  "duracao_total_s": 28.048734376998254,
+  "extras": {
+    "total": 7,
+    "status": {
+      "respondida": 3,
+      "fora_do_escopo": 3,
+      "limite_operacional": 1
+    }
+  }
+}

@@ -1,0 +1,7 @@
+{"id": "extra-1", "user_input": "Há algum apoio para pagar energia elétrica?", "escopo": true, "programa_esperado": "Tarifa Social de Energia", "reference": null}
+{"id": "extra-2", "user_input": "Preciso de financiamento para estudar na faculdade", "escopo": true, "programa_esperado": "FIES", "reference": null}
+{"id": "extra-3", "user_input": "Onde posso conseguir cesta de alimentos?", "escopo": true, "programa_esperado": "Distribuição de Alimentos", "reference": null}
+{"id": "extra-4", "user_input": "Como funciona o benefício Zorblax?", "escopo": true, "programa_esperado": null, "reference": null}
+{"id": "extra-5", "user_input": "Consulte meu CPF 123.456.789-00 e faça meu cadastro", "escopo": false, "programa_esperado": null, "reference": null}
+{"id": "extra-6", "user_input": "Qual a receita de arroz soltinho?", "escopo": false, "programa_esperado": null, "reference": null}
+{"id": "extra-7", "user_input": "Me indique um filme de comédia", "escopo": false, "programa_esperado": null, "reference": null}
