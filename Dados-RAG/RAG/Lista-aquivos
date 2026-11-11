@@ -1,15 +1,23 @@
 requirements.txt [ X ]
 requirements-avaliacao.txt 
 readme-alteracoes.md
-rag.py
+rag.py [ X ]
 ingestao.py [ X ]
-fontes.py
-dataset.py
+fontes.py [ X ]
+dataset.py [ X ]
 buscar.py [ X ]
-baixar_fontes.py
+baixar_fontes.py [ X ]
 avaliar_ragas.py
 avaliar.py [ X ]
-__init__.py
+__init__.py [ X ]
 README.md [ X ]
 
-NOVO - experimentos.py ConsolidacaoRag = SegundoChallenge/rag/
+NOVOS
+experimentos.py ConsolidacaoRag = SegundoChallenge/rag/
+
+Pasta testes-automatizados
+test_rag.py [ X ]
+test_fontes.py [ X ]
+test_dataset.py [ X ]
+test_avaliar_ragas.py NOVO
+executar_testes.py NOVO
