@@ -1,7 +1,7 @@
 [
   {
     "resposta": "Para essa situação, você deve procurar orientação no CRAS. Lei 12.595/2012.",
-    "segundos": 4.324717375000091,
+    "segundos": 4.168328249999831,
     "recuperados": [],
     "pergunta": "Estou desempregada e tenho três filhos, tenho direito a algum auxílio?",
     "esperado": "Bolsa Família",
@@ -21,7 +21,7 @@
   },
   {
     "resposta": "FORA_DO_ESCOPO",
-    "segundos": 0.6884982910000872,
+    "segundos": 0.607105166999645,
     "recuperados": [],
     "pergunta": "tem ajuda para comprar o botijão de gás?",
     "esperado": "Auxílio Gás",
@@ -37,7 +37,7 @@
   },
   {
     "resposta": "FORA_DO_ESCOOP",
-    "segundos": 0.5845897089998289,
+    "segundos": 0.5831481249997523,
     "recuperados": [],
     "pergunta": "minha conta de luz tá muito cara, tem desconto?",
     "esperado": "Tarifa Social de Energia",
@@ -54,7 +54,7 @@
   },
   {
     "resposta": "FORA_DO_ESCOOP",
-    "segundos": 0.5903228330003003,
+    "segundos": 0.5830972079993444,
     "recuperados": [],
     "pergunta": "tem desconto na conta de água?",
     "esperado": "Tarifa Social de Água",
@@ -70,7 +70,7 @@
   },
   {
     "resposta": "Para idosos sem renda, pode ser o Benefício do Idoso (BI). Ele foi criado pela Lei 12.595/2012. Procure no CRAS para mais informações.",
-    "segundos": 2.6420084999999744,
+    "segundos": 2.6453398329995252,
     "recuperados": [],
     "pergunta": "minha mãe é idosa e não tem renda nenhuma",
     "esperado": "BPC",
@@ -91,7 +91,7 @@
   },
   {
     "resposta": "Pode ser beneficiário do Benefício da Prestação Continuada (BPC). Fale com o CRAS para saber mais. Lei 8.083/90.",
-    "segundos": 2.2604146670000773,
+    "segundos": 2.2400759160000234,
     "recuperados": [],
     "pergunta": "meu filho é deficiente, tem algum benefício?",
     "esperado": "BPC",
@@ -112,7 +112,7 @@
   },
   {
     "resposta": "FORA_DO_ESCOPO",
-    "segundos": 0.6421806250000373,
+    "segundos": 0.6026299170007405,
     "recuperados": [],
     "pergunta": "quero fazer faculdade mas não tenho dinheiro",
     "esperado": "FIES Social",
@@ -128,7 +128,7 @@
   },
   {
     "resposta": "FORA_DO_ESCOPO",
-    "segundos": 0.5920184589999735,
+    "segundos": 0.5959812920000331,
     "recuperados": [],
     "pergunta": "como faço pra não pagar a inscrição do enem?",
     "esperado": "Enem",
@@ -142,7 +142,7 @@
   },
   {
     "resposta": "FORA_DO_ESCOPO",
-    "segundos": 0.5830872500000623,
+    "segundos": 0.5997175829998014,
     "recuperados": [],
     "pergunta": "tem isenção pra taxa de concurso?",
     "esperado": "concursos públicos",
@@ -158,7 +158,7 @@
   },
   {
     "resposta": "Para jovens em ensino médio, pode ser útil o ProUni (Lei 12.718/12). Procure CRAS para mais informações.",
-    "segundos": 2.350899541999752,
+    "segundos": 2.169387791999725,
     "recuperados": [],
     "pergunta": "meu filho tá no ensino médio, tem alguma ajuda?",
     "esperado": "Pé-de-Meia",
@@ -178,7 +178,7 @@
   },
   {
     "resposta": "FORA_DO_ESCOOPlease procure em sites oficiais de programas habitacionais do governo.",
-    "segundos": 1.4025977920000514,
+    "segundos": 1.4159885420003775,
     "recuperados": [],
     "pergunta": "quero comprar uma casa, tem programa do governo?",
     "esperado": "Minha Casa",
@@ -194,7 +194,7 @@
   },
   {
     "resposta": "FORA_DO_ESCOOP",
-    "segundos": 0.5978620829996544,
+    "segundos": 0.5821539159996973,
     "recuperados": [],
     "pergunta": "preciso de remédio de graça",
     "esperado": "Farmácia Popular",
@@ -210,7 +210,7 @@
   },
   {
     "resposta": "FORA_DO_ESCOPO",
-    "segundos": 0.6326781669999946,
+    "segundos": 0.5911275420003221,
     "recuperados": [],
     "pergunta": "onde consigo absorvente de graça?",
     "esperado": "Dignidade Menstrual",
@@ -226,7 +226,7 @@
   },
   {
     "resposta": "FORA_DO_ESCOOP",
-    "segundos": 0.5863550409999334,
+    "segundos": 0.6038130420001835,
     "recuperados": [],
     "pergunta": "moro na roça e falta água por causa da seca",
     "esperado": "Cisternas",
@@ -242,7 +242,7 @@
   },
   {
     "resposta": "FORA_DO_ESCOOP",
-    "segundos": 0.5729414170000382,
+    "segundos": 0.6200779169994348,
     "recuperados": [],
     "pergunta": "sou dona de casa, posso pagar o INSS mais barato?",
     "esperado": "Facultativo de Baixa Renda",
@@ -259,7 +259,7 @@
   },
   {
     "resposta": "FORA_DO_ESCOOProgra social não existe para isso",
-    "segundos": 0.9695279169995956,
+    "segundos": 0.9470495839996147,
     "recuperados": [],
     "pergunta": "deficiente pode viajar de ônibus de graça pra outro estado?",
     "esperado": "Passe Livre",
@@ -275,7 +275,7 @@
   },
   {
     "resposta": "FORA_DO_ESCOPO",
-    "segundos": 0.5932168330000422,
+    "segundos": 0.6018604159999086,
     "recuperados": [],
     "pergunta": "quero abrir um negócio pequeno, tem microcrédito?",
     "esperado": "Acredita",
@@ -291,7 +291,7 @@
   },
   {
     "resposta": "FORA_DO_ESCOOP",
-    "segundos": 0.5723455829997874,
+    "segundos": 0.5943749159996514,
     "recuperados": [],
     "pergunta": "preciso de internet pro meu filho estudar",
     "esperado": "Internet Brasil",
@@ -307,7 +307,7 @@
   },
   {
     "resposta": "FORA_DO_ESCOOP",
-    "segundos": 0.5877970830001686,
+    "segundos": 0.6000905840000996,
     "recuperados": [],
     "pergunta": "tem cesta de comida pra família passando fome?",
     "esperado": "Distribuição de Alimentos",
@@ -324,7 +324,7 @@
   },
   {
     "resposta": "Para gestantes e crianças, existe o Progás (Lei 12.594/11). Procure no CRAS para mais informações.",
-    "segundos": 1.9944224999999278,
+    "segundos": 2.0276335839998865,
     "recuperados": [],
     "pergunta": "estou grávida, tem acompanhamento pro bebê?",
     "esperado": "Primeira Infância",
@@ -345,7 +345,7 @@
   },
   {
     "resposta": "Como mãe solteira de baixa renda, você pode procurar no programa Bolsa Família. Precisa comprovar a situação e renda em CRAS. Lei 8.083/90 criou o programa. Procure informações no órgão local.",
-    "segundos": 3.241464457999882,
+    "segundos": 3.2755384590000176,
     "recuperados": [],
     "pergunta": "quais benefícios posso ter como mãe solteira de baixa renda?",
     "esperado": "Bolsa Família",
@@ -365,7 +365,7 @@
   },
   {
     "resposta": "FORA_DO_ESCOPO",
-    "segundos": 0.5855164169997806,
+    "segundos": 0.6066295839991653,
     "recuperados": [],
     "pergunta": "qual o melhor time de futebol do brasil?",
     "escopo": "fora",
@@ -374,7 +374,7 @@
   },
   {
     "resposta": "FORA_DO_ESCOPO",
-    "segundos": 0.5900646250001955,
+    "segundos": 0.582575166999959,
     "recuperados": [],
     "pergunta": "como faço bolo de cenoura?",
     "escopo": "fora",
@@ -383,7 +383,7 @@
   },
   {
     "resposta": "FORA_DO_ESCOPO",
-    "segundos": 0.5879159579999396,
+    "segundos": 0.5952896249991682,
     "recuperados": [],
     "pergunta": "qual a previsão do tempo pra amanhã?",
     "escopo": "fora",
@@ -392,7 +392,7 @@
   },
   {
     "resposta": "FORA_DO_ESCOOP",
-    "segundos": 0.7132986250003341,
+    "segundos": 0.5858109170003445,
     "recuperados": [],
     "pergunta": "me recomenda um filme de terror",
     "escopo": "fora",
@@ -401,7 +401,7 @@
   },
   {
     "resposta": "FORA_DO_ESCOPO",
-    "segundos": 0.7734333340004014,
+    "segundos": 0.5897546249998413,
     "recuperados": [],
     "pergunta": "como eu tiro o passaporte?",
     "escopo": "fora",
@@ -410,7 +410,7 @@
   },
   {
     "resposta": "FORA_DO_ESCOOP",
-    "segundos": 0.6205231659996571,
+    "segundos": 0.5915067910000289,
     "recuperados": [],
     "pergunta": "quanto custa um celular novo?",
     "escopo": "fora",

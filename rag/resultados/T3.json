@@ -1,7 +1,7 @@
 [
   {
     "resposta": "Para saber se você tem direito ao auxílio, você deve procurar orientação no CRAS ou em organizações semelhantes que atuam na área social. [1] Não há informação específica sobre um programa específico para essa situação no material disponível.",
-    "segundos": 9.543601708999631,
+    "segundos": 8.697549458999674,
     "recuperados": [
       "Bolsa Família",
       "Facultativo de Baixa Renda",
@@ -22,7 +22,7 @@
   },
   {
     "resposta": "O programa que pode ajudar a comprar botijão de gás é o Auxílio Gás do Povo (Auxílio Gás). Você deve procurar orientação no CRAS ou órgão responsável. [1]",
-    "segundos": 6.752885417000016,
+    "segundos": 7.255101209000713,
     "recuperados": [
       "Auxílio Gás dos Brasileiros",
       "Sisu/Lei de Cotas",
@@ -43,7 +43,7 @@
   },
   {
     "resposta": "Para saber se você tem direito ao desconto na conta de energia elétrica (Tarifa Social), você deve procurar pelo CRAS ou ligar para o ANEEL. Você precisa estar inscrita no Cadastro Único e ter renda per capita até meio salário mínimo por pessoa, ou ser beneficiária do BPC. [1]",
-    "segundos": 9.347156457999972,
+    "segundos": 9.820852207999451,
     "recuperados": [
       "Tarifa Social de Energia Elétrica",
       "FIES Social",
@@ -65,7 +65,7 @@
   },
   {
     "resposta": "O programa que oferece desconto na conta de água é o Tarifa Social de Água e Esgoto [1]. Você deve procurar orientação no CRAS ou órgão responsável para saber se você está elegível.",
-    "segundos": 8.100879541999802,
+    "segundos": 8.056415707999804,
     "recuperados": [
       "Tarifa Social de Água e Esgoto",
       "Programa Cisternas",
@@ -86,7 +86,7 @@
   },
   {
     "resposta": "O programa que pode te ajudar é o [1] Benefício de Prestação Continuada (BPC). Ele é destinado a pessoas sem meios de sustento próprio ou familiar, incluindo idosos. Você deve procurar orientação no CRAS para solicitar esse benefício.",
-    "segundos": 8.031461000000036,
+    "segundos": 8.352311124999687,
     "recuperados": [
       "Benefício de Prestação Continuada (BPC)",
       "Carteira da Pessoa Idosa",
@@ -108,7 +108,7 @@
   },
   {
     "resposta": "[3] Órgão: MDS  \n# Auxílio-Inclusão  \n\nEste programa oferece recursos financeiros a pessoas com deficiência beneficiárias do BPC que ingressam no mercado de trabalho. Você pode pedir se seu filho é pessoa com deficiência e está recebendo o BPC, além de estar trabalhando.",
-    "segundos": 8.364760208000007,
+    "segundos": 8.991682791999665,
     "recuperados": [
       "BPC na Escola",
       "Facultativo de Baixa Renda",
@@ -130,7 +130,7 @@
   },
   {
     "resposta": "Você pode pedir auxílio para a Sisu ou PNAES, que são programas do MEC para estudantes de baixa renda. Procure informações no CRAS da sua região sobre como se inscrever. [1],[2]",
-    "segundos": 7.45437420799999,
+    "segundos": 7.862864458000331,
     "recuperados": [
       "Sisu/Lei de Cotas",
       "PNAES - Assistência Estudantil",
@@ -151,7 +151,7 @@
   },
   {
     "resposta": "Você pode pedir isenção da taxa do Enem através do INEP. Procure o CRAS ou órgão responsável para solicitar a isenção, pois é necessário comprovar que você atende aos critérios de isenção definidos pela Lei 13.656/2018 e pelo Decreto 6.593/2008.",
-    "segundos": 8.659596707999754,
+    "segundos": 9.015943166999932,
     "recuperados": [
       "Isenção da taxa do Enem",
       "Isenção de taxas sobre imóvel da União",
@@ -173,7 +173,7 @@
   },
   {
     "resposta": "[1] Isenção de taxa em concursos públicos federais existe, mas quem pode pedir e os critérios não estão especificados no documento de origem. Para mais informações, procure o CRAS ou o órgão responsável.",
-    "segundos": 6.859710625000389,
+    "segundos": 7.386112124999272,
     "recuperados": [
       "Isenção de taxa em concursos públicos federais",
       "Isenção de taxas sobre imóvel da União",
@@ -194,7 +194,7 @@
   },
   {
     "resposta": "O programa que pode ajudar seu filho é o [1] Pé-de-Meia. Ele oferece apoio financeiro para estudantes do ensino médio público. Você deve verificar com o CRAS ou órgão responsável para saber se ele atende a sua situação específica.",
-    "segundos": 7.261380834000192,
+    "segundos": 7.391692250000233,
     "recuperados": [
       "Pé-de-Meia",
       "Carteira da Pessoa Idosa",
@@ -215,7 +215,7 @@
   },
   {
     "resposta": "O Minha Casa, Minha Vida é um programa que pode te ajudar a comprar uma casa. Você precisa ter renda mensal bruta até R$ 5.000, conforme critérios atualizados. Para saber se você está apto, procure o CRAS ou o órgão responsável do seu município. [1]",
-    "segundos": 8.818305125000279,
+    "segundos": 8.98294879200057,
     "recuperados": [
       "Minha Casa, Minha Vida",
       "Bolsa Verde",
@@ -236,7 +236,7 @@
   },
   {
     "resposta": "O programa Farmácia Popular pode te ajudar com acesso a medicamentos gratuitos ou subsidiados. Você precisa procurar orientação no CRAS ou órgão responsável para saber se atende ao seu caso específico. [1]",
-    "segundos": 8.95110404099978,
+    "segundos": 7.999483208000129,
     "recuperados": [
       "Farmácia Popular",
       "Primeira Infância no SUAS / Criança Feliz",
@@ -257,7 +257,7 @@
   },
   {
     "resposta": "Você pode procurar o CRAS ou a助助助助助助助助助助助助助助助助助助助助助助助助助助助助助助助",
-    "segundos": 7.3163741250000385,
+    "segundos": 7.332265709000239,
     "recuperados": [
       "Dignidade Menstrual",
       "Facultativo de Baixa Renda",
@@ -278,7 +278,7 @@
   },
   {
     "resposta": "Você pode pedir ações de acesso à água para consumo ou produção [1] através do Programa Cisternas, que é voltado para famílias de baixa renda residentes na zona rural atingidas pela seca. Para saber mais sobre como solicitar, procure o CRAS ou o órgão responsável local.",
-    "segundos": 8.869414250000318,
+    "segundos": 8.712489625000671,
     "recuperados": [
       "Programa Cisternas",
       "Tarifa Social de Água e Esgoto",
@@ -299,7 +299,7 @@
   },
   {
     "resposta": "[2] Você pode se beneficiar com a Facultativo de Baixa Renda, um benefício previdenciário para pessoas sem renda própria que trabalham em casa. Para saber se você está apta, fale com o CRAS ou procure informações no INSS. A Lei base é a Lei nº 8.212/1991 e a Lei nº 12.470/2011 regulamentam essa modalidade.",
-    "segundos": 9.115063083000223,
+    "segundos": 9.175641000000724,
     "recuperados": [
       "Minha Casa, Minha Vida",
       "Facultativo de Baixa Renda",
@@ -324,7 +324,7 @@
   },
   {
     "resposta": "[2] Órgão: ANTT\n# Passe Livre Interestadual\n\nPessoas com deficiência podem usar o passe livre interestadual. Para mais informações, verifique com o órgão responsável ou procure pelo CRAS.",
-    "segundos": 6.051467875000071,
+    "segundos": 6.042882208000265,
     "recuperados": [
       "BPC na Escola",
       "Passe Livre Interestadual",
@@ -345,7 +345,7 @@
   },
   {
     "resposta": "O Primeiro Passo pode oferecer microcrédito para quem é microempreendedor popular [1]. Você deve verificar se atende aos critérios específicos do programa. Para mais informações, procure pelo CRAS ou o órgão responsável.",
-    "segundos": 7.71868912500031,
+    "segundos": 7.4105050000007395,
     "recuperados": [
       "Acredita no Primeiro Passo",
       "Créditos Instalação - Reforma Agrária",
@@ -366,7 +366,7 @@
   },
   {
     "resposta": "[2] Órgão: ANATEL\n\n## O que é\nAcesso à moradia, a infraestrutura e a serviços básicos.\n\nTipo de benefício: Equipamento/kit gratuito\n\nÓrgão responsável: ANATEL\n\n## Quem pode\nPúblico-alvo: Famílias de baixa renda inscritas no Cadastro Único.\nCritérios: Ser família de baixa renda inscrita no Cadastro Único.\n\nSituação do critério: Informação parcial no documento.",
-    "segundos": 11.98223175000021,
+    "segundos": 11.339624999999614,
     "recuperados": [
       "Internet Brasil",
       "Digitaliza Brasil - conversores de TV digital",
@@ -387,7 +387,7 @@
   },
   {
     "resposta": "FORA_DO_ESCOPO",
-    "segundos": 6.536738457999945,
+    "segundos": 6.424811707999652,
     "recuperados": [
       "Primeira Infância no SUAS / Criança Feliz",
       "Tarifa Social de Energia Elétrica",
@@ -409,7 +409,7 @@
   },
   {
     "resposta": "Primeira Infância no SUAS / Criança Feliz é um programa para quem está grávida ou cuida de crianças pequenas. Você pode pedir atendimento nestes programas. [1]",
-    "segundos": 5.972315416999663,
+    "segundos": 6.119394416999967,
     "recuperados": [
       "Primeira Infância no SUAS / Criança Feliz",
       "Acredita no Primeiro Passo",
@@ -431,7 +431,7 @@
   },
   {
     "resposta": "Você pode procurar informações no Programa Bolsa Família [3], que é para famílias em situação de pobreza ou vulnerabilidade, incluindo mães solteiras. Mas para ter certeza, você deve falar com o CRAS da sua região.",
-    "segundos": 8.588714250000066,
+    "segundos": 8.015800458999365,
     "recuperados": [
       "Facultativo de Baixa Renda",
       "Programa Cisternas",
@@ -452,7 +452,7 @@
   },
   {
     "resposta": "FORA_DO_ESCOPO",
-    "segundos": 2.784456250000403,
+    "segundos": 3.0391795419991467,
     "recuperados": [
       "Internet Brasil",
       "Digitaliza Brasil - conversores de TV digital",
@@ -466,7 +466,7 @@
   },
   {
     "resposta": "FORA_DO_ESCOPO",
-    "segundos": 4.3180907499995556,
+    "segundos": 4.104812291000599,
     "recuperados": [
       "Bolsa Família",
       "Bolsa Verde",
@@ -480,7 +480,7 @@
   },
   {
     "resposta": "FORA_DO_ESCOPO",
-    "segundos": 4.381656166000084,
+    "segundos": 4.447913332999633,
     "recuperados": [
       "Benefício de Prestação Continuada (BPC)",
       "Pé-de-Meia",
@@ -494,7 +494,7 @@
   },
   {
     "resposta": "FORA_DO_ESCOPO",
-    "segundos": 5.484566916999938,
+    "segundos": 5.213714208000056,
     "recuperados": [
       "Passe Livre Interestadual",
       "Programa Cisternas",
@@ -508,7 +508,7 @@
   },
   {
     "resposta": "FORA_DO_ESCOPO",
-    "segundos": 4.056074291000186,
+    "segundos": 3.8997006250001505,
     "recuperados": [
       "Acredita no Primeiro Passo",
       "FIES Social",
@@ -522,7 +522,7 @@
   },
   {
     "resposta": "FORA_DO_ESCOPO",
-    "segundos": 4.113523041999997,
+    "segundos": 3.8343101660002503,
     "recuperados": [
       "Acredita no Primeiro Passo",
       "Sisu/Lei de Cotas",
