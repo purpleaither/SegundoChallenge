@@ -1,8 +1,8 @@
-TESTES AUTOMATIZADOS E AVALIAÇÃO RAGAS
+-> TESTES AUTOMATIZADOS E AVALIAÇÃO RAGAS
 
 Execute os comandos abaixo na raiz do repositório, no PowerShell.
 
-TESTES UNITÁRIOS
+-> TESTES UNITÁRIOS
 
 1) Instale as dependências do projeto uma vez:
 
@@ -14,9 +14,9 @@ TESTES UNITÁRIOS
    python .\Dados-RAG\RAG\testes-automatizados\executar_testes.py
    VERSÃO .VENV => .\.venv\Scripts\python.exe .\Dados-RAG\RAG\testes-automatizados\executar_testes.py
 
-Os testes unitários não precisam do Ollama, de índice vetorial pronto ou de chave de API.
+Atenção: Os testes unitários não precisam do Ollama, de índice vetorial pronto ou de chave de API.
 
-AVALIAÇÃO DE RECUPERAÇÃO (MÉTRICAS OBJETIVAS, SEM JUIZ LLM)
+-> AVALIAÇÃO DE RECUPERAÇÃO (MÉTRICAS OBJETIVAS, SEM JUIZ LLM)
 
 Com o Ollama ativo e o índice atualizado, rode:
 
@@ -24,10 +24,11 @@ Com o Ollama ativo e o índice atualizado, rode:
    VERSÃO .VENV => .\.venv\Scripts\python.exe .\Dados-RAG\RAG\avaliar.py
 
 O relatório mostra acerto@1, acerto@4, MRR e abstenção em perguntas fora do escopo.
-Isso mede a busca, não a qualidade da redação. Acerto@4 não garante que o primeiro
-resultado, usado como principal na resposta, seja o programa esperado.
+Isso mede a busca, não a qualidade da redação. 
 
-AVALIAÇÃO RAGAS OPCIONAL (JUIZ LOCAL, SEM API PAGA)
+Atenção: Acerto@4 não garante que o primeiro resultado, usado como principal na resposta, seja o programa esperado.
+
+-> AVALIAÇÃO RAGAS OPCIONAL (JUIZ LOCAL, SEM API PAGA)
 
 1) Instale as dependências extras:
 
@@ -49,28 +50,32 @@ AVALIAÇÃO RAGAS OPCIONAL (JUIZ LOCAL, SEM API PAGA)
    python .\Dados-RAG\RAG\testes-automatizados\executar_testes.py --com-ragas --limite 2
    VERSÃO .VENV => .\.venv\Scripts\python.exe .\Dados-RAG\RAG\testes-automatizados\executar_testes.py --com-ragas --limite 2
 
-   (Opcional) Rodar avaliação RAGAS completa (sem limite)
+   ( Opcional! ) Rodar avaliação RAGAS completa ( sem limite )
    .\.venv\Scripts\python.exe .\Dados-RAG\RAG\testes-automatizados\executar_testes.py --com-ragas
 
 Para avaliar todos os casos, retire --limite 2. A execução pode demorar porque o juiz
 local analisa cada resposta e contexto. Os arquivos amostras.jsonl, resultados.jsonl,
 resumo.json e metricas.csv são gravados em Dados-RAG\RAG\avaliacao.
 
-O RAGAS mede fidelidade, uso/precisão/recall dos contextos nas perguntas em escopo,
-com um LLM juiz. Não prova que o benefício existe, que a fonte está atualizada nem
-que uma pessoa tem direito. As referências de avaliação precisam de revisão humana.
+-> SOBRE O RAGAS NO PROJETO
+O RAGAS mede fidelidade, uso, precisão e recall dos contextos nas perguntas em escopo,
+com um LLM juiz. Não tem finalidade de provar que o benefício existe, que a fonte está atualizada nem
+que uma pessoa tem direito. 
+
+Saídas produzidas no terminal: 
 Acerto@1, acerto@4, MRR, respostas com contexto em perguntas válidas e abstenções corretas
 fora do escopo são métricas objetivas complementares para acompanhar a busca.
-O juiz local qwen2.5:3b errou ao avaliar uma recusa fora do escopo; por isso a aderência
+O juiz local qwen2.5:3b errou ao avaliar uma recusa fora do escopo. Por isso, a aderência
 ao escopo é medida pelo campo objetivo abstencao_correta, não por uma nota RAGAS.
 
-1) Comando único para rodar tudo em .venv ou em ambiente normal:
+-> OPÇÃO DE COMANDO ÚNICO PARA RODAR TUDO:
    
    py -3.12 -m pip install -r .\Back-end\requirements.txt; if ($?) { py -3.12 -m pip install -r .\Dados-RAG\RAG\requirements-avaliacao.txt }; if ($?) { ollama pull bge-m3 }; if ($?) { ollama pull qwen2.5:3b }; if ($?) { py -3.12 .\Dados-RAG\RAG\ingestao.py }; if ($?) { py -3.12 .\Dados-RAG\RAG\avaliar.py }; if ($?) { py -3.12 .\Dados-RAG\RAG\testes-automatizados\executar_testes.py --com-ragas --limite 2 }
    VERSÃO .VENV => .\.venv\Scripts\python.exe -m pip install -r .\Back-end\requirements.txt; if ($?) { .\.venv\Scripts\python.exe -m pip install -r .\Dados-RAG\RAG\requirements-avaliacao.txt }; if ($?) { ollama pull bge-m3 }; if ($?) { ollama pull qwen2.5:3b }; if ($?) { .\.venv\Scripts\python.exe .\Dados-RAG\RAG\ingestao.py }; if ($?) { .\.venv\Scripts\python.exe .\Dados-RAG\RAG\avaliar.py }; if ($?) { .\.venv\Scripts\python.exe .\Dados-RAG\RAG\testes-automatizados\executar_testes.py --com-ragas --limite 2 }
 
-A. Testes Unitários (Back-end e RAG)
-B. Ingestão de Dados (Criação do Índice Vetorial)
+Ordem dos testes executados:
+A. Testes Unitários (Back-end e RAG);
+B. Ingestão de Dados (Criação do Índice Vetorial);
 C. Avaliação de Recuperação (Métricas Objetivas, sem juiz LLM): Aqui mede qualidade da busca
-( acerto@1, acerto@4, MRR e abstenções fora do escopo ).
-D. Testes Unitários + Avaliação RAGAS (Juiz local, sem APIs pagas)
+( acerto@1, acerto@4, MRR e abstenções fora do escopo );
+D. Testes Unitários + Avaliação RAGAS (Juiz local, sem APIs pagas).
