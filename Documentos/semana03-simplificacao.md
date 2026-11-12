@@ -1,8 +1,8 @@
-# Semana 3 — arquitetura escolhida para o RAG
+# Semana 03 — arquitetura escolhida para o RAG
 
 ## Decisão
 
-O relatório **LLM x RAG — Semana 3** concluiu que a configuração T5 teve o melhor resultado no conjunto experimental: embeddings `bge-m3`, limiar de abstenção e resposta por texto determinístico extraído da ficha do programa, sem LLM na geração.
+O relatório **LLM x RAG — Semana 03** concluiu que a configuração T5 teve o melhor resultado no conjunto experimental: embeddings `bge-m3`, limiar de abstenção e resposta por texto determinístico extraído da ficha do programa, sem LLM na geração.
 
 Esta arquitetura foi aplicada ao fluxo da API:
 
