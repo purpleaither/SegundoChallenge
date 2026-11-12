@@ -1,64 +1,38 @@
-# Assistente Virtual do DF
+# Assistente virtual de benefícios sociais
 
-Chatbot institucional que ajuda moradores do Distrito Federal a encontrar programas sociais potencialmente relacionados à sua situação. A resposta é informativa, usa trechos recuperados da base e cita fontes; não decide elegibilidade.
+API de perguntas e respostas sobre programas sociais. O sistema recupera informações da base curada e de fontes oficiais; as respostas são montadas a partir dos dados, sem geração por LLM. A resposta é informativa e não decide elegibilidade.
 
-## Base de conhecimento e RAG
+## Arquitetura adotada
 
-A base atual parte de `Dados/programas_sociais_legislacao_links_oficiais.csv`, com 42 programas federais, e indexa também os textos legislativos integrais baixados dos links oficiais da planilha. Na coleta desta revisão, 27 textos HTML oficiais foram validados e indexados; dois links servem PDFs que o coletor ainda não extrai e uma página retornou erro temporário. Os critérios da planilha continuam parciais em vários programas, e o catálogo não cobre todos os benefícios do DF. A implementação, estratégia de chunking e embeddings, arquitetura e limitações estão documentadas em [Dados/rag/README.md](Dados/rag/README.md).
+O relatório [Documentos/semana3-resumo.md](Documentos/semana3-resumo.md) registra a decisão da Semana 3: usar a configuração T5 — embeddings multilíngues `bge-m3` pelo Ollama, busca vetorial ChromaDB, limiar de similaridade e resposta determinística. Isso elimina chamadas pagas e evita que um modelo reescreva ou invente leis e critérios.
 
-O histórico das alterações no RAG, no índice vetorial e na interface está em [Dados/rag/readme-alteracoes.md](Dados/rag/readme-alteracoes.md).
+O limiar padrão é `RAG_MIN_SIMILARITY=0.532`, valor experimental do relatório. Como a base atual também inclui textos legislativos, esse valor precisa ser recalibrado em um conjunto de perguntas independente antes de qualquer uso institucional.
 
-O documento [Documentacao/semana_2.md](Documentacao/semana_2.md) relaciona a implementação aos requisitos do segundo desafio, descreve a arquitetura e registra os resultados reais da busca, da avaliação de recuperação e da API.
+## Estrutura real
 
-## Pastas e arquivos do projeto
+- `Back-end/`: API FastAPI e testes do servidor.
+- `Dados-RAG/programas_sociais_legislacao_links_oficiais.csv`: base estruturada dos 42 programas.
+- `Dados-RAG/RAG/`: preparação dos dados, ingestão, recuperação, respostas determinísticas, avaliação RAGAS e testes.
+- `Dados-RAG/RAG/base/`: fichas Markdown derivadas do CSV.
+- `Dados-RAG/RAG/fontes/`: textos legislativos oficiais baixados.
+- `Documentos/`: relatórios do projeto.
 
-| Nome | O que significa e para que serve |
-|---|---|
-| `Back-end/` | Código Python do servidor. `main.py` define a API que recebe perguntas e conversa com o RAG. |
-| `Front-end/` | Arquivos da interface aberta no navegador: HTML define o conteúdo, CSS a aparência e JavaScript o comportamento. |
-| [`Front-end/app.js`](Front-end/app.js) | JavaScript da tela principal do chat: envia perguntas à API, atualiza a conversa e apresenta respostas e fontes. O sufixo `.js` identifica um arquivo JavaScript. |
-| `Dados/` | Dados usados pela aplicação, incluindo o CSV dos programas e os módulos Python do RAG. No Windows, o índice vetorial fica por padrão fora do repositório, em `%LOCALAPPDATA%\AssistenteVirtualDF\vetor-v2`. |
-| `Dados/rag/` | Implementação única do RAG em uso pela API: preparação da base, ingestão, busca, verificação semântica de escopo, respostas e avaliação RAGAS. |
-| `Dados/rag/testes-automatizados/` | Testes unitários e script `executar_testes.py`, que também inicia a bateria RAGAS integrada. |
-| `Dados/rag/avaliacao/` | Casos versionados do teste integrado RAG + RAGAS; os resultados locais são gerados ao executar a avaliação. |
-| `Dados/rag-ragas/` | Protótipo experimental antigo preservado como histórico; não é usado pelo back-end. A avaliação atual fica em `Dados/rag/`. |
-| `terminal.txt` | Comandos PowerShell para instalar dependências, iniciar o Ollama, testar respostas, rodar testes automáticos e avaliar com RAGAS. |
-| `Dados/rag/base/` | Arquivos Markdown gerados a partir dos registros do CSV. São documentos derivados para o pipeline, não 42 fontes originais independentes. |
-| [`Dados/__init__.py`](Dados/__init__.py) | Arquivo Python que identifica `Dados` como pacote e contém uma breve descrição. Em versões modernas do Python, alguns diretórios podem ser importados sem ele, mas mantê-lo deixa explícita a estrutura do pacote e é convencional. |
-| `__pycache__/` | Pasta criada automaticamente pelo Python para guardar bytecode compilado (`.pyc`) e acelerar importações futuras. Não é código-fonte nem precisa ser enviada; o Python a recria quando necessário. O Git a ignora. |
-| `%LOCALAPPDATA%\AssistenteVirtualDF\vetor-v2` | Banco vetorial persistente do ChromaDB no Windows. É derivado dos dados e recriável com o script de ingestão. |
-| `Back-end/requirements.txt` | Lista as bibliotecas Python usadas pelo servidor e pelo RAG. O comando `pip install -r` instala essas dependências no ambiente Python; não instala o Ollama nem baixa os modelos de IA. |
-| `Dados/rag/requirements.txt` | Lista de dependências Python para o módulo RAG quando tratado separadamente. Para executar o projeto completo, o README usa `Back-end/requirements.txt`. |
-| `Dados/rag/requirements-avaliacao.txt` | Dependências opcionais para avaliar respostas com RAGAS e o juiz OpenAI. |
-| `.gitignore` | Lista arquivos locais ou gerados que o Git deve ignorar, como ambientes virtuais, caches Python, o índice local e arquivos de configuração com segredos. |
-| `Dados/rag/testes-automatizados/test_*.py` | Testes automatizados que verificam partes do código sem precisar demonstrar o sistema pela interface. |
+## Instalação e execução no Windows
 
-Em resumo: `app.js` é código da interface; `requirements.txt` lista dependências; `__init__.py` ajuda a organizar/importar módulos Python; `__pycache__/` é cache descartável; e `%LOCALAPPDATA%\AssistenteVirtualDF\vetor-v2` guarda o índice local usado para buscar trechos relevantes no Windows.
-
-## Executar no Windows
-
-Crie o ambiente Python e instale as dependências:
+Crie um ambiente com Python 3.12 e instale as dependências da API:
 
 ```powershell
 py -3.12 -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install -r .\Back-end\requirements.txt
-```
-
-Use Python 3.12 para este fluxo se a instalação do ChromaDB falhar por falta de uma versão compatível do `onnxruntime`.
-
-Configure uma chave da OpenAI para a classificação e geração de respostas e instale o [Ollama](https://ollama.com/) para os embeddings:
-
-```powershell
-$env:OPENAI_API_KEY = "sua-chave"
 ollama pull bge-m3
 ```
 
-Baixe/atualize os textos legislativos e gere o índice depois de alterar o CSV ou as fontes:
+Baixe fontes novas, se necessário, e gere/recrie o índice vetorial:
 
 ```powershell
-python .\Dados\rag\baixar_fontes.py
-python .\Dados\rag\ingestao.py
+python .\Dados-RAG\RAG\baixar_fontes.py
+python .\Dados-RAG\RAG\ingestao.py
 ```
 
 Inicie a API:
@@ -67,42 +41,41 @@ Inicie a API:
 python -m uvicorn main:app --reload --app-dir .\Back-end
 ```
 
-Em outro terminal, sirva a interface e abra `http://127.0.0.1:5500/`:
-
-```powershell
-python -m http.server 5500 --bind 127.0.0.1 --directory .\Front-end
-```
-
-A documentação da API fica em `http://127.0.0.1:8000/docs`. No Windows, o índice vetorial é gravado por padrão em `%LOCALAPPDATA%\AssistenteVirtualDF\vetor-v2`; o controle de tentativas de voz fica em `Back-end/data/audio_limits.sqlite3`. Ambos são locais. O índice foi movido para fora do caminho do repositório porque a pasta do projeto contém caracteres acentuados e o ChromaDB não persistiu seus arquivos HNSW nesse caminho. `VECTOR_DB_PATH`, `OLLAMA_URL`, `OLLAMA_EMBEDDING_MODEL`, `OPENAI_API_KEY`, `OPENAI_CHAT_MODEL` e `RAG_MAX_DISTANCE` podem ser configurados por variáveis de ambiente; no Windows, configure `VECTOR_DB_PATH` para um caminho sem caracteres acentuados.
-
-Também é possível demonstrar a recuperação sem abrir a interface:
-
-```powershell
-python .\Dados\rag\buscar.py "Tem ajuda para comprar o botijão de gás?"
-python .\Dados\rag\buscar.py --responder "Como faço para não pagar a inscrição do Enem?"
-python .\Dados\rag\avaliar.py
-```
-
-O modo `--responder` usa a busca, a classificação de escopo e a geração da mesma forma que a API. Para a bateria RAGAS, instale os extras opcionais e rode os testes automatizados integrados:
-
-```powershell
-python -m pip install -r .\Dados\rag\requirements-avaliacao.txt
-python .\Dados\rag\testes-automatizados\executar_testes.py
-```
-
-Por padrão, o script roda os testes unitários e depois os 27 casos da avaliação integrada, fazendo chamadas pagas à OpenAI. Para executar somente os testes locais, use `--apenas-unitarios`; para limitar a bateria, use `--limite 2`. O avaliador integrado exercita o RAG usado pela API, inclusive o classificador semântico que impede uma palavra coincidente de levar a uma resposta fora de contexto. O antigo experimento em `Dados/rag-ragas/` e seus resultados não representam a implementação atual. Consulte [terminal.txt](terminal.txt) para o roteiro completo de execução no Windows.
-
-## Voz, acessibilidade e privacidade
-
-A interface permite perguntas por texto, reconhecimento de fala em português e leitura da resposta sob solicitação. O reconhecimento pode usar o serviço de voz do navegador. O limite de entrada por voz é de 10 tentativas por conversa a cada 24 horas; não é uma proteção por pessoa. O back-end não persiste histórico, e o navegador envia apenas as últimas mensagens da conversa ativa. Evite informar CPF, endereço ou outros dados pessoais.
-
-O link “Entrar ou criar conta” abre telas de protótipo para login, cadastro e recuperação. Os formulários estão desativados: ainda não há autenticação no back-end, banco de contas nem envio de token por e-mail. Não use dados reais nessas telas.
+A documentação interativa fica em `http://127.0.0.1:8000/docs`. No Windows, o índice persistente fica por padrão em `%LOCALAPPDATA%\AssistenteVirtualDF\vetor-v3`; configure `VECTOR_DB_PATH` para outro local, se necessário. Depois da atualização para o conjunto v3, execute a ingestão novamente antes de consultar a API.
 
 ## Testes
 
+Com as dependências instaladas, um comando executa os testes unitários do back-end e do RAG, sem Ollama, chave de API ou chamadas pagas:
+
 ```powershell
-python -m unittest discover -s .\Back-end -p "test_*.py"
-python -m unittest discover -s .\Dados\rag -p "test_*.py"
+python .\Dados-RAG\RAG\testes-automatizados\executar_testes.py
 ```
 
-Validação desta alteração: **13 testes do back-end e 13 testes de dados/fontes passaram**; a verificação de escopo isolada e a sintaxe dos scripts também passaram. A suíte completa do RAG e a bateria RAGAS com Ollama ainda precisam ser executadas em um ambiente com dependências compatíveis e modelos instalados. Neste computador, o Python disponível é 3.15.2 (sem wheel de `onnxruntime` para instalar ChromaDB) e o Ollama está ativo, mas sem modelos; use uma versão Python suportada pelo ChromaDB, como 3.12, e siga os comandos de [terminal.txt](terminal.txt).
+O passo a passo está em [Dados-RAG/RAG/testes-automatizados/COMO_EXECUTAR.txt](Dados-RAG/RAG/testes-automatizados/COMO_EXECUTAR.txt).
+
+### Avaliação RAGAS opcional
+
+A avaliação RAGAS é separada da resposta da aplicação. Ela usa o endpoint OpenAI-compatível **local** do Ollama como juiz, sem `OPENAI_API_KEY` e sem custo de API:
+
+```powershell
+python -m pip install -r .\Dados-RAG\RAG\requirements-avaliacao.txt
+ollama pull qwen2.5:3b
+python .\Dados-RAG\RAG\testes-automatizados\executar_testes.py --com-ragas --limite 2
+```
+
+Para a bateria completa, remova `--limite 2`. O juiz local é outro modelo e suas notas também precisam de revisão; ele não participa da resposta ao cidadão.
+
+RAGAS mede fidelidade da resposta e relação entre resposta, contextos e referências. Como o T5 não usa LLM para redigir, acompanhe também as métricas objetivas de recuperação e abstenção:
+
+```powershell
+python .\Dados-RAG\RAG\avaliar.py
+```
+
+Essa avaliação percorre as 27 perguntas e mede acerto@1, acerto@4, MRR e abstenção fora do escopo. Na revisão atual, o resultado foi **18/21 no top-1, 21/21 no top-4 e 6/6 abstenções**; há três casos em que o esperado não ficou em primeiro lugar. Como o limiar e as expansões foram ajustados com base nesses exemplos, isso não é um teste independente nem garantia de precisão. Além disso, algumas perguntas aceitam mais de um programa útil, então o conjunto precisa ser revisado para incluir alternativas válidas. As referências usadas por Context Precision/Recall também precisam de validação humana.
+
+## Limitações conhecidas
+
+- A base atual contém 42 programas federais, não um catálogo completo de benefícios do Distrito Federal.
+- Os critérios da planilha são parciais em vários programas; a resposta preserva essa limitação.
+- Similaridade vetorial é apenas uma estimativa de relevância, não uma classificação semântica infalível de escopo. Perguntas ambíguas ou fora da base podem exigir revisão e recalibração do limiar.
+- O corpus e o conjunto de avaliação são pequenos para certificar precisão ou elegibilidade.

@@ -12,7 +12,7 @@ from uuid import uuid4
 from fastapi import HTTPException
 
 import main
-from Dados.rag.rag import ModelUnavailableError
+from RAG.rag import ModelUnavailableError, NO_CONTEXT_RESPONSE
 
 
 class StubKnowledgeBase:
@@ -58,15 +58,32 @@ class ApiDataTests(unittest.TestCase):
         self.assertEqual(error.exception.status_code, 500)
 
     def test_assistant_does_not_suggest_unreviewed_benefits(self) -> None:
-        response = main.ask_assistant(main.AssistantRequest(question="Cartão Prato Cheio"))
+        with patch.object(main, "get_knowledge_base", return_value=StubKnowledgeBase()):
+            response = main.ask_assistant(
+                main.AssistantRequest(question="Cartão Prato Cheio")
+            )
 
         self.assertEqual(response.benefits, [])
-        self.assertIn("não significa que você não tenha direito", response.answer)
+        self.assertEqual(response.answer, NO_CONTEXT_RESPONSE)
 
     def test_assistant_finds_a_program_and_keeps_source_limitations(self) -> None:
-        response = main.ask_assistant(
-            main.AssistantRequest(question="Quais critérios para o BPC?")
-        )
+        source = {
+            "program_id": "beneficio-de-prestacao-continuada-bpc",
+            "program_name": "Benefício de Prestação Continuada (BPC)",
+            "agency_id": "MDS",
+            "summary": "Benefício mensal.",
+            "criteria": "Pessoa idosa ou com deficiência.",
+            "criteria_status": "Informação parcial no documento",
+            "legislation_base": "Lei nº 8.742/1993",
+        }
+        with patch.object(
+            main,
+            "get_knowledge_base",
+            return_value=StubKnowledgeBase(results=[source]),
+        ):
+            response = main.ask_assistant(
+                main.AssistantRequest(question="Quais critérios para o BPC?")
+            )
 
         bpc = next(
             benefit
@@ -158,7 +175,7 @@ class ApiDataTests(unittest.TestCase):
                 patch.object(main, "get_knowledge_base", return_value=knowledge_base),
                 patch.object(
                     main,
-                    "generate_answer",
+                    "compose_answer",
                     return_value="Resposta baseada na fonte [1].",
                 ),
             ):
@@ -172,7 +189,7 @@ class ApiDataTests(unittest.TestCase):
         self.assertEqual(response.answer, "Resposta baseada na fonte [1].")
         self.assertEqual(response.citations[0]["url"], source["url"])
 
-    def test_chat_classifies_questions_even_when_search_returns_no_context(self) -> None:
+    def test_chat_returns_a_fixed_abstention_when_search_has_no_context(self) -> None:
         knowledge_base = StubKnowledgeBase()
         with tempfile.TemporaryDirectory() as temporary_directory:
             with (
@@ -182,11 +199,6 @@ class ApiDataTests(unittest.TestCase):
                     Path(temporary_directory) / "audio.sqlite3",
                 ),
                 patch.object(main, "get_knowledge_base", return_value=knowledge_base),
-                patch.object(
-                    main,
-                    "generate_answer",
-                    return_value="Este assistente orienta somente sobre programas sociais.",
-                ) as generate,
             ):
                 response = main.chat(
                     main.ChatRequest(
@@ -195,55 +207,12 @@ class ApiDataTests(unittest.TestCase):
                     )
                 )
 
-        generate.assert_called_once_with(
-            "Qual é o melhor filme de terror?",
-            [],
-            [],
-        )
+        self.assertEqual(response.answer, NO_CONTEXT_RESPONSE)
         self.assertEqual(response.citations, [])
         self.assertEqual(
             response.notice,
             "Não foram usadas fontes recuperadas da base para esta resposta.",
         )
-
-    def test_chat_does_not_cite_retrieved_documents_after_scope_abstention(self) -> None:
-        source = {
-            "agency_id": "MDS",
-            "title": "Página oficial",
-            "url": "https://www.gov.br/exemplo",
-            "legislation_url": "",
-            "source_page": "",
-            "source_date": "",
-            "researched_at": "",
-            "text": "Trecho sem relação com a pergunta.",
-        }
-        with tempfile.TemporaryDirectory() as temporary_directory:
-            with (
-                patch.object(
-                    main,
-                    "AUDIO_LIMIT_DB",
-                    Path(temporary_directory) / "audio.sqlite3",
-                ),
-                patch.object(
-                    main,
-                    "get_knowledge_base",
-                    return_value=StubKnowledgeBase(results=[source]),
-                ),
-                patch.object(
-                    main,
-                    "generate_answer",
-                    return_value=main.OUT_OF_SCOPE_RESPONSE,
-                ),
-            ):
-                response = main.chat(
-                    main.ChatRequest(
-                        conversation_id=uuid4(),
-                        question="Como faço bolo de cenoura no fogão a gás?",
-                    )
-                )
-
-        self.assertEqual(response.answer, main.OUT_OF_SCOPE_RESPONSE)
-        self.assertEqual(response.citations, [])
 
     def test_chat_reports_local_model_unavailability(self) -> None:
         knowledge_base = StubKnowledgeBase(error=ModelUnavailableError("Ollama indisponível."))
@@ -280,8 +249,8 @@ class ApiDataTests(unittest.TestCase):
                     patch.object(main, "get_knowledge_base", return_value=knowledge_base),
                     patch.object(
                         main,
-                        "generate_answer",
-                        return_value="Ainda não encontrei um trecho correspondente.",
+                        "compose_answer",
+                        return_value=NO_CONTEXT_RESPONSE,
                     ),
                 ):
                     response = main.chat(

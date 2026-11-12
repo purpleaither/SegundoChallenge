@@ -4,18 +4,19 @@ import sys
 from pathlib import Path
 
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
-BASE_PATH = PROJECT_ROOT / "Dados" / "rag" / "base"
-sys.path.insert(0, str(PROJECT_ROOT))
+RAG_ROOT = Path(__file__).resolve().parent
+PROJECT_ROOT = RAG_ROOT.parents[1]
+BASE_PATH = RAG_ROOT / "base"
+sys.path.insert(0, str(RAG_ROOT.parent))
 
-from Dados.rag.dataset import (  # noqa: E402
+from RAG.dataset import (  # noqa: E402
     build_official_source_chunks,
     build_program_chunks,
     read_programs,
     render_program_document,
     slug,
 )
-from Dados.rag.rag import (  # noqa: E402
+from RAG.rag import (  # noqa: E402
     KnowledgeBase,
     ModelUnavailableError,
     embed_texts,

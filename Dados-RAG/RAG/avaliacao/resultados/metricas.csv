@@ -1,0 +1,3 @@
+id,user_input,escopo,faithfulness,context_utilization,context_precision,context_recall,rank_programa_esperado,acerto_top_1,acerto_top_k,resposta_com_contexto_em_escopo,abstencao_correta,decisao_escopo_correta,erros
+dentro-1,"Estou desempregada e tenho três filhos, tenho direito a algum auxílio?",True,1.0,0.0,0.0,0.0,3,False,True,True,,True,{}
+dentro-2,tem ajuda para comprar o botijão de gás?,True,1.0,0.49999999995,0.99999999995,0.875,1,True,True,True,,True,{}

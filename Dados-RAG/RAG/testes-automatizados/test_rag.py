@@ -9,10 +9,10 @@ from unittest.mock import patch
 import chromadb
 from chromadb.config import Settings
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from Dados.rag import rag
-from Dados.rag.rag import DATASET_VERSION, KnowledgeBase, SourceChunk
+from RAG import rag
+from RAG.rag import DATASET_VERSION, KnowledgeBase, SourceChunk
 
 
 def source_chunk(
@@ -54,6 +54,18 @@ class RetrievalTests(unittest.TestCase):
         self.assertIn("Tem desconto no botijão?", expanded)
         self.assertIn("auxilio gas GLP", expanded)
 
+    def test_query_expansion_does_not_confuse_housework_with_housing(self) -> None:
+        expanded = rag.expand_question("Sou dona de casa e quero pagar o INSS mais barato")
+
+        self.assertIn("facultativo baixa renda", expanded)
+        self.assertNotIn("moradia habitacao", expanded)
+
+    def test_query_expansion_links_single_mothers_to_family_income_support(self) -> None:
+        expanded = rag.expand_question("Quais benefícios para mãe solteira de baixa renda?")
+
+        self.assertIn("Bolsa Familia", expanded)
+        self.assertIn("transferencia de renda", expanded)
+
     def test_search_deduplicates_chunks_by_program(self) -> None:
         knowledge_base = KnowledgeBase(client=self.client)
         chunks = [
@@ -67,7 +79,7 @@ class RetrievalTests(unittest.TestCase):
             [[1.0, 0.0], [0.99, 0.1], [0.9, 0.2], [-1.0, 0.0]],
         )
 
-        with patch("Dados.rag.rag.embed_texts", return_value=[[1.0, 0.0]]):
+        with patch("RAG.rag.embed_texts", return_value=[[1.0, 0.0]]):
             results = knowledge_base.search("Quem pode receber?", limit=2)
 
         self.assertEqual(
@@ -102,7 +114,7 @@ class RetrievalTests(unittest.TestCase):
         )
         knowledge_base = KnowledgeBase(client=self.client)
 
-        with patch("Dados.rag.rag.embed_texts", return_value=[[1.0, 0.0]]):
+        with patch("RAG.rag.embed_texts", return_value=[[1.0, 0.0]]):
             results = knowledge_base.search("Conteúdo antigo.")
 
         self.assertEqual(results, [])
@@ -123,113 +135,51 @@ class RetrievalTests(unittest.TestCase):
             finally:
                 reader.close()
 
-    def test_answer_prompt_uses_planilha_chunks_and_cites_their_official_links(self) -> None:
+    def test_search_abstains_when_similarity_is_below_threshold(self) -> None:
+        knowledge_base = KnowledgeBase(client=self.client)
+        knowledge_base.replace(
+            [source_chunk("unrelated", "other", "Outro programa", "Outro assunto.")],
+            [[0.0, 1.0]],
+        )
+
+        with patch("RAG.rag.embed_texts", return_value=[[1.0, 0.0]]):
+            results = knowledge_base.search("Como pedir o benefício?")
+
+        self.assertEqual(results, [])
+
+    def test_answer_uses_curated_fields_without_a_generation_model(self) -> None:
         source = {
             "agency_id": "MDS",
-            "program_name": "Auxílio Gás dos Brasileiros",
+            "program_name": "Bolsa Família",
+            "current_name": "",
+            "summary": "Transferência de renda para famílias.",
+            "benefit_type": "Benefício mensal",
+            "audience": "Famílias em situação de pobreza.",
+            "criteria": "A base não detalha os critérios.",
             "criteria_status": "Informação parcial no documento",
-            "title": "Lista de Programas Federais",
-            "url": "https://www.gov.br/programas.pdf",
-            "legislation_url": "https://www.gov.br/lei",
-            "source_page": "2",
-            "researched_at": "2026-11-04",
-            "text": "Critérios parcialmente especificados.",
+            "legislation_base": "Lei nº 14.601/2023",
         }
-        with patch(
-            "Dados.rag.rag.request_openai",
-            side_effect=[
-                '{"scope":"in_scope"}',
-                "Consulte o órgão [1].",
-            ],
-        ) as request:
-            answer = rag.generate_answer("Como solicitar?", [source], [])
+        answer = rag.compose_answer([source])
 
-        scope_prompt = request.call_args_list[0].args[0][0]["content"]
-        self.assertIn("não use palavras isoladas", scope_prompt)
-        self.assertEqual(request.call_args_list[0].kwargs["json_object"], True)
-        system_message = request.call_args_list[1].args[0][0]["content"]
-        self.assertIn("trechos recuperados da base de conhecimento", system_message)
-        self.assertIn("Programa: Auxílio Gás dos Brasileiros", system_message)
-        self.assertIn("órgão responsável informado: MDS", system_message)
-        self.assertIn("não deduza um órgão pelo tema", system_message)
-        self.assertIn(source["url"], system_message)
-        self.assertIn(source["legislation_url"], system_message)
-        self.assertIn("não complete as lacunas", system_message)
-        self.assertEqual(request.call_args_list[1].kwargs["model"], None)
-        self.assertEqual(answer, "Consulte o órgão [1].")
+        self.assertIn("Bolsa Família [1]", answer)
+        self.assertIn("Critérios descritos na base:", answer)
+        self.assertIn("informação sobre os critérios é parcial", answer)
+        self.assertIn("Lei nº 14.601/2023", answer)
+        self.assertIn("Órgão responsável informado na base: MDS", answer)
 
-    def test_out_of_scope_question_is_abstained_before_answer_generation(self) -> None:
-        with patch(
-            "Dados.rag.rag.request_openai",
-            return_value='{"scope":"out_of_scope"}',
-        ) as request:
-            answer = rag.generate_answer(
-                "Como faço um bolo de cenoura para a assistência social?",
-                [{"text": "Programa Bolsa Família"}],
-                [],
-            )
+    def test_answer_abstains_without_retrieved_evidence(self) -> None:
+        self.assertEqual(rag.compose_answer([]), rag.NO_CONTEXT_RESPONSE)
 
-        self.assertEqual(answer, rag.OUT_OF_SCOPE_RESPONSE)
-        self.assertEqual(request.call_count, 1)
+    def test_answer_lists_other_retrieved_programs_by_name_only(self) -> None:
+        answer = rag.compose_answer(
+            [
+                {"program_name": "BPC"},
+                {"program_name": "Bolsa Família"},
+            ]
+        )
 
-    def test_scope_classifier_rejects_malformed_model_output(self) -> None:
-        with patch(
-            "Dados.rag.rag.request_openai",
-            return_value="talvez",
-        ):
-            with self.assertRaises(rag.ModelUnavailableError):
-                rag.question_is_in_scope("Qual a previsão do tempo?")
-
-    def test_in_scope_question_without_context_returns_no_context_notice(self) -> None:
-        with patch(
-            "Dados.rag.rag.request_openai",
-            return_value='{"scope":"in_scope"}',
-        ) as request:
-            answer = rag.generate_answer("Quais benefícios existem no DF?", [], [])
-
-        self.assertEqual(answer, rag.NO_CONTEXT_RESPONSE)
-        self.assertEqual(request.call_count, 1)
-
-    def test_answer_falls_back_to_retrieved_text_when_model_omits_citations(self) -> None:
-        source = {
-            "agency_id": "MDS",
-            "program_name": "Auxílio Gás dos Brasileiros",
-            "title": "Lista de Programas Federais",
-            "url": "https://www.gov.br/programas.pdf",
-            "text": "Auxílio para compra de GLP.",
-        }
-        with patch(
-            "Dados.rag.rag.request_openai",
-            side_effect=[
-                '{"scope":"in_scope"}',
-                "Procure o Ministério da Saúde.",
-            ],
-        ):
-            answer = rag.generate_answer("Como conseguir gás?", [source], [])
-
-        self.assertIn("Auxílio para compra de GLP. [1]", answer)
-        self.assertIn("órgão responsável informado é MDS", answer)
-        self.assertNotIn("Ministério da Saúde", answer)
-
-    def test_answer_falls_back_when_model_uses_an_invalid_citation(self) -> None:
-        source = {
-            "agency_id": "MDS",
-            "program_name": "Auxílio Gás dos Brasileiros",
-            "title": "Lista de Programas Federais",
-            "url": "https://www.gov.br/programas.pdf",
-            "text": "Auxílio para compra de GLP.",
-        }
-        with patch(
-            "Dados.rag.rag.request_openai",
-            side_effect=[
-                '{"scope":"in_scope"}',
-                "Consulte [2].",
-            ],
-        ):
-            answer = rag.generate_answer("Como conseguir gás?", [source], [])
-
-        self.assertIn("Auxílio para compra de GLP. [1]", answer)
-        self.assertNotIn("Consulte [2]", answer)
+        self.assertIn("BPC [1]", answer)
+        self.assertIn("Outros resultados relacionados: Bolsa Família [2].", answer)
 
 
 if __name__ == "__main__":

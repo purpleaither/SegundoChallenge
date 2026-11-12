@@ -1,4 +1,4 @@
-"""Executa o RAG da aplicação e avalia respostas e abstenções com RAGAS e OpenAI."""
+"""Avalia o RAG determinístico com métricas RAGAS e um juiz local do Ollama."""
 
 import argparse
 import asyncio
@@ -6,7 +6,6 @@ import csv
 from datetime import datetime, timezone
 import json
 import math
-import os
 from pathlib import Path
 import sys
 from typing import Any
@@ -14,10 +13,10 @@ from typing import Any
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 EVALUATION_DIR = Path(__file__).resolve().parent / "avaliacao"
-sys.path.insert(0, str(PROJECT_ROOT))
+sys.path.insert(0, str(PROJECT_ROOT / "Dados-RAG"))
 
-from Dados.rag import rag  # noqa: E402
-from Dados.rag.rag import KnowledgeBase, ModelUnavailableError  # noqa: E402
+from RAG import rag  # noqa: E402
+from RAG.rag import KnowledgeBase, ModelUnavailableError, compose_answer  # noqa: E402
 
 
 def read_jsonl(path: Path) -> list[dict[str, Any]]:
@@ -54,12 +53,67 @@ def read_jsonl(path: Path) -> list[dict[str, Any]]:
 
 def format_contexts(context: list[dict[str, Any]]) -> list[str]:
     return [
-        f"Programa: {item.get('program_name', 'não informado')}\n"
-        f"Órgão: {item.get('agency_id', 'não informado')}\n"
-        f"Fonte: {item.get('title', 'não informada')}\n"
-        f"Trecho: {item.get('text', '')}"
+        "\n".join(
+            f"{label}: {item.get(field) or 'não informado'}"
+            for label, field in (
+                ("Programa", "program_name"),
+                ("Nome atual", "current_name"),
+                ("Órgão responsável", "agency_id"),
+                ("Resumo", "summary"),
+                ("Tipo de benefício", "benefit_type"),
+                ("Público-alvo", "audience"),
+                ("Critérios", "criteria"),
+                ("Status dos critérios", "criteria_status"),
+                ("Legislação base", "legislation_base"),
+                ("Regulamentação", "regulation"),
+                ("Atualização normativa", "recent_update"),
+                ("Fonte", "title"),
+                ("URL", "url"),
+                ("Trecho recuperado", "text"),
+            )
+        )
         for item in context
     ]
+
+
+def metric_inputs(
+    name: str,
+    user_input: str,
+    response: str,
+    retrieved_contexts: list[str],
+    reference: str | None = None,
+) -> dict[str, Any]:
+    inputs: dict[str, Any] = {
+        "user_input": user_input,
+        "retrieved_contexts": retrieved_contexts,
+    }
+    if name in {"faithfulness", "context_utilization"}:
+        inputs["response"] = response
+    if name in {"context_precision", "context_recall"} and reference is not None:
+        inputs["reference"] = reference
+    return inputs
+
+
+def expected_program_rank(expected_program: str, program_names: list[str]) -> int | None:
+    if not expected_program:
+        return None
+    return next(
+        (
+            index
+            for index, name in enumerate(program_names, start=1)
+            if expected_program.casefold() in name.casefold()
+        ),
+        None,
+    )
+
+
+def scope_retrieval_metrics(in_scope: bool, has_context: bool) -> dict[str, bool | None]:
+    retrieval_abstained = not has_context
+    return {
+        "abstencao_correta": retrieval_abstained if not in_scope else None,
+        "resposta_com_contexto_em_escopo": has_context if in_scope else None,
+        "decisao_escopo_correta": retrieval_abstained == (not in_scope),
+    }
 
 
 def collect(args: argparse.Namespace) -> None:
@@ -78,31 +132,25 @@ def collect(args: argparse.Namespace) -> None:
             for case in cases:
                 print(f"Executando RAG: {case['id']}...", flush=True)
                 context = knowledge_base.search(case["user_input"])
-                response = rag.generate_answer(
-                    case["user_input"],
-                    context,
-                    [],
-                    model=args.modelo,
-                )
+                response = compose_answer(context)
                 expected_program = case.get("programa_esperado", "")
+                program_names = [item.get("program_name", "") for item in context]
+                rank = expected_program_rank(expected_program, program_names)
                 sample = dict(
                     case,
                     response=response,
                     retrieved_contexts=format_contexts(context),
-                    programas=[item.get("program_name", "") for item in context],
-                    modelo_gerador=args.modelo,
+                    programas=program_names,
+                    rank_programa_esperado=rank if case["escopo"] else None,
+                    modelo_gerador="deterministico (sem LLM)",
                     coletado_em=datetime.now(timezone.utc).isoformat(),
+                    acerto_top_1=(
+                        rank == 1 if case["escopo"] and expected_program else None
+                    ),
                     acerto_top_k=(
-                        any(expected_program.casefold() in name.casefold()
-                            for name in [item.get("program_name", "") for item in context])
-                        if case["escopo"] and expected_program
-                        else None
+                        rank is not None if case["escopo"] and expected_program else None
                     ),
-                    abstencao_correta=(
-                        response == rag.OUT_OF_SCOPE_RESPONSE
-                        if not case["escopo"]
-                        else response != rag.OUT_OF_SCOPE_RESPONSE
-                    ),
+                    **scope_retrieval_metrics(case["escopo"], bool(context)),
                 )
                 output.write(json.dumps(sample, ensure_ascii=False, allow_nan=False) + "\n")
                 output.flush()
@@ -112,14 +160,10 @@ def collect(args: argparse.Namespace) -> None:
 
 
 async def evaluate(args: argparse.Namespace) -> None:
-    api_key = os.environ.get("OPENAI_API_KEY")
-    if not api_key:
-        raise ValueError("Defina OPENAI_API_KEY para executar a avaliação RAGAS com a OpenAI.")
     try:
         from openai import AsyncOpenAI
         from ragas import SingleTurnSample
         from ragas.llms import llm_factory
-        from ragas.metrics import AspectCritic
         from ragas.metrics.collections import (
             ContextPrecision,
             ContextRecall,
@@ -129,20 +173,23 @@ async def evaluate(args: argparse.Namespace) -> None:
     except ImportError as exc:
         raise RuntimeError(
             "Dependências de avaliação ausentes ou incompatíveis. "
-            "Instale Dados/rag/requirements-avaliacao.txt."
+            "Instale Dados-RAG/RAG/requirements-avaliacao.txt."
         ) from exc
 
     samples = read_jsonl(args.amostras)
     args.saida.mkdir(parents=True, exist_ok=True)
     metric_names = [
-        "scope_adherence",
         "faithfulness",
         "context_utilization",
         "context_precision",
         "context_recall",
     ]
     results: list[dict[str, Any]] = []
-    async with AsyncOpenAI(api_key=api_key, timeout=180) as client:
+    async with AsyncOpenAI(
+        api_key="ollama-local",
+        base_url=f"{rag.OLLAMA_URL}/v1",
+        timeout=180,
+    ) as client:
         judge = llm_factory(
             args.juiz,
             client=client,
@@ -150,20 +197,6 @@ async def evaluate(args: argparse.Namespace) -> None:
             max_tokens=args.max_tokens,
         )
         metrics = {
-            "scope_adherence": AspectCritic(
-                name="scope_adherence",
-                definition=(
-                    "Avalie a pergunta inteira e a intenção do usuário, não palavras "
-                    "isoladas. Dúvidas informativas sobre benefícios e direitos sociais "
-                    "devem receber orientação apoiada nos contextos, mesmo quando a pergunta "
-                    "contém termos que também aparecem em assuntos cotidianos. Assuntos sem "
-                    "relação com programas/direitos sociais e pedidos de consulta, cadastro "
-                    "ou aprovação individual devem receber uma abstenção clara, sem tentar "
-                    "atender ao pedido. Dê nota positiva somente quando a resposta adota a "
-                    "conduta adequada ao escopo da pergunta."
-                ),
-                llm=judge,
-            ),
             "faithfulness": Faithfulness(llm=judge),
             "context_utilization": ContextUtilization(llm=judge),
             "context_precision": ContextPrecision(llm=judge),
@@ -175,20 +208,19 @@ async def evaluate(args: argparse.Namespace) -> None:
             row.update({name: None for name in metric_names})
             row["max_tokens_por_metrica"] = {}
             for name, metric in metrics.items():
-                if name != "scope_adherence" and not sample["escopo"]:
+                if not sample["escopo"]:
                     continue
                 if name in {"context_precision", "context_recall"} and not (
                     sample.get("reference") or ""
                 ).strip():
                     continue
-                inputs = {
-                    "user_input": sample["user_input"],
-                    "response": sample["response"],
-                }
-                if name != "scope_adherence":
-                    inputs["retrieved_contexts"] = sample["retrieved_contexts"]
-                if name in {"context_precision", "context_recall"}:
-                    inputs["reference"] = sample["reference"]
+                inputs = metric_inputs(
+                    name,
+                    sample["user_input"],
+                    sample["response"],
+                    sample.get("retrieved_contexts", []),
+                    sample.get("reference"),
+                )
                 try:
                     row["max_tokens_por_metrica"][name] = args.max_tokens
                     sample_obj = SingleTurnSample(
@@ -232,7 +264,13 @@ async def evaluate(args: argparse.Namespace) -> None:
             "avaliadas": len(scores),
             "falhas": sum(name in row["erros"] for row in results),
         }
-    for field in ("acerto_top_k", "abstencao_correta"):
+    for field in (
+        "acerto_top_1",
+        "acerto_top_k",
+        "resposta_com_contexto_em_escopo",
+        "abstencao_correta",
+        "decisao_escopo_correta",
+    ):
         values = [row[field] for row in results if row.get(field) is not None]
         summary[field] = {
             "taxa": sum(values) / len(values) if values else None,
@@ -247,8 +285,12 @@ async def evaluate(args: argparse.Namespace) -> None:
         "user_input",
         "escopo",
         *metric_names,
+        "rank_programa_esperado",
+        "acerto_top_1",
         "acerto_top_k",
+        "resposta_com_contexto_em_escopo",
         "abstencao_correta",
+        "decisao_escopo_correta",
         "erros",
     ]
     with (args.saida / "metricas.csv").open("w", encoding="utf-8", newline="") as output:
@@ -278,14 +320,9 @@ def main() -> int:
     parser.add_argument("--amostras", type=Path, default=EVALUATION_DIR / "amostras.jsonl")
     parser.add_argument("--saida", type=Path, default=EVALUATION_DIR / "resultados")
     parser.add_argument(
-        "--modelo",
-        default=rag.OPENAI_CHAT_MODEL,
-        help="Modelo OpenAI usado para classificar e gerar as respostas do RAG",
-    )
-    parser.add_argument(
         "--juiz",
-        default=rag.OPENAI_CHAT_MODEL,
-        help="Modelo OpenAI usado como juiz RAGAS",
+        default=rag.OLLAMA_EVALUATION_MODEL,
+        help="Modelo local do Ollama usado como juiz RAGAS",
     )
     parser.add_argument("--limite", type=int, help="Executa apenas os primeiros N casos")
     parser.add_argument(
@@ -299,8 +336,6 @@ def main() -> int:
         parser.error("--limite deve ser positivo.")
     if args.max_tokens < 1:
         parser.error("--max-tokens deve ser positivo.")
-    if not os.environ.get("OPENAI_API_KEY"):
-        parser.error("Defina OPENAI_API_KEY para executar o RAG e a avaliação com OpenAI.")
     try:
         if args.etapa in {"coletar", "todos"}:
             collect(args)

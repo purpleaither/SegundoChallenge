@@ -1,10 +1,8 @@
 from __future__ import annotations
 
 import os
-import re
 import sqlite3
 import sys
-import unicodedata
 from contextlib import closing
 from datetime import datetime, timedelta, timezone
 from functools import lru_cache
@@ -17,14 +15,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(PROJECT_ROOT))
+sys.path.insert(0, str(PROJECT_ROOT / "Dados-RAG"))
 
-from Dados.rag.dataset import CSV_PATH, program_as_api_record, read_programs
-from Dados.rag.rag import (
+from RAG.dataset import CSV_PATH, program_as_api_record, read_programs
+from RAG.rag import (
     KnowledgeBase,
     ModelUnavailableError,
-    OUT_OF_SCOPE_RESPONSE,
-    generate_answer,
+    compose_answer,
 )
 
 
@@ -33,14 +30,6 @@ AUDIO_LIMIT_DB = Path(
 )
 AUDIO_LIMIT = 10
 AUDIO_RESET_PERIOD = timedelta(hours=24)
-
-STOP_WORDS = {
-    "a", "ao", "aos", "as", "com", "como", "da", "das", "de", "do", "dos",
-    "e", "em", "eu", "me", "meu", "minha", "o", "os", "para", "por", "qual",
-    "quais", "que", "se", "tem", "tenho", "um", "uma", "quem", "pode",
-    "criterios", "receber", "beneficio",
-}
-
 
 class Benefit(BaseModel):
     id: str
@@ -302,50 +291,6 @@ def load_programs(path: Path | None = None) -> list[Benefit]:
         ) from exc
 
 
-def normalize(text: str) -> str:
-    decomposed = unicodedata.normalize("NFKD", text.casefold())
-    return "".join(char for char in decomposed if not unicodedata.combining(char))
-
-
-def search_terms(text: str) -> set[str]:
-    return {
-        term
-        for term in re.findall(r"[a-z0-9]+", normalize(text))
-        if len(term) > 2 and term not in STOP_WORDS
-    }
-
-
-def matching_benefits(question: str, benefits: list[Benefit]) -> list[Benefit]:
-    terms = search_terms(question)
-    if not terms:
-        return []
-
-    scored: list[tuple[int, Benefit]] = []
-    for benefit in benefits:
-        searchable_text = " ".join(
-            [
-                benefit.name,
-                benefit.current_name,
-                benefit.summary,
-                benefit.category,
-                benefit.benefit_type,
-                benefit.audience,
-                *benefit.criteria,
-                benefit.legislation_base,
-                benefit.regulation,
-                benefit.recent_update,
-                benefit.legislation_notes,
-                benefit.validation_notes,
-            ]
-        )
-        document_terms = search_terms(searchable_text)
-        score = len(terms & document_terms)
-        if score:
-            scored.append((score, benefit))
-    scored.sort(key=lambda result: result[0], reverse=True)
-    return [benefit for _, benefit in scored[:3]]
-
-
 @app.get("/api/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
@@ -373,26 +318,28 @@ def ask_assistant(request: AssistantRequest) -> AssistantResponse:
     if not question:
         raise HTTPException(status_code=422, detail="Escreva uma pergunta para continuar.")
 
-    matches = matching_benefits(question, load_programs())
-    if not matches:
-        return AssistantResponse(
-            answer=(
-                "Ainda não encontrei um programa correspondente na base fornecida que responda a essa "
-                "pergunta. Isso não significa que você não tenha direito a um benefício. "
-                "Tente novamente com o nome do programa ou consulte o órgão responsável."
-            ),
-            benefits=[],
-            notice="Não use esta resposta como decisão de elegibilidade.",
-        )
+    try:
+        context = get_knowledge_base().search(question)
+    except ModelUnavailableError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=str(exc),
+        ) from exc
 
-    names = ", ".join(benefit.name for benefit in matches)
+    benefits_by_id = {benefit.id: benefit for benefit in load_programs()}
+    matches = [
+        benefits_by_id[program_id]
+        for item in context
+        if (program_id := item.get("program_id")) in benefits_by_id
+    ]
+
     return AssistantResponse(
-        answer=f"Encontrei informações que podem ser relevantes: {names}.",
+        answer=compose_answer(context),
         benefits=matches,
         notice=(
             "A correspondência é apenas informativa e não confirma elegibilidade. "
             "Consulte as fontes oficiais indicadas em cada resultado."
-        ),
+        ) if context else "Não foi encontrado contexto suficiente na base para responder.",
     )
 
 
@@ -426,18 +373,13 @@ def chat(request: ChatRequest) -> ChatResponse:
 
     try:
         context = get_knowledge_base().search(question)
-        answer = generate_answer(
-            question,
-            context,
-            [message.model_dump() for message in request.history[-8:]],
-        )
+        answer = compose_answer(context)
     except ModelUnavailableError as exc:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail=str(exc),
         ) from exc
 
-    cited_context = [] if answer == OUT_OF_SCOPE_RESPONSE else context
     citations = [
         {
             "agency_id": item["agency_id"],
@@ -449,7 +391,7 @@ def chat(request: ChatRequest) -> ChatResponse:
             "researched_at": item["researched_at"],
             "excerpt": item["text"],
         }
-        for item in cited_context
+        for item in context
     ]
     notice = (
         "Resposta informativa baseada nas fontes citadas. O órgão responsável decide "

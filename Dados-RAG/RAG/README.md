@@ -1,114 +1,76 @@
-# RAG do Assistente do DF
+# RAG do assistente virtual
 
-Este diretório contém a implementação única do RAG: leitura e validação da base, preparação de documentos, busca vetorial, geração de respostas e comandos de ingestão e avaliação. A API importa os módulos daqui. O protótipo antigo de `Dados/rag-ragas/` foi mantido como histórico; os testes e a avaliação executados pela aplicação agora ficam aqui.
+Este diretório contém o pipeline usado pela API: validação das fontes, divisão em trechos, embeddings, recuperação com ChromaDB, respostas determinísticas, avaliação RAGAS opcional e testes.
 
-## Arquitetura atual
+## Arquitetura de produção (T5)
 
-1. **Fonte de conhecimento:** `../programas_sociais_legislacao_links_oficiais.csv`, com 42 programas federais e 22 colunas, fornece os dados estruturados. Os arquivos Markdown em `base/` são documentos derivados dos registros, não fontes independentes. O coletor `baixar_fontes.py` baixa textos legislativos integrais de URLs oficiais distintas e grava as fontes em `fontes/`; nesta coleta, 27 páginas HTML foram validadas e indexadas.
-2. **Tratamento e chunking:** o pipeline valida esquema, campos essenciais e URLs oficiais; transforma cada programa em quatro seções semânticas e cria 168 trechos estruturados. Também divide os textos legislativos baixados em trechos de até 1.200 caracteres, com sobreposição de 180 caracteres e ajuste por espaço. Cada trecho é contextualizado com o programa e a fonte.
-3. **Embeddings:** Ollama executa `bge-m3` para converter os trechos e as perguntas (após expansão de alguns termos) em vetores. A ingestão envia os trechos em lotes de até 32; a busca usa o mesmo modelo de embedding.
-4. **Banco vetorial:** ChromaDB persiste esses vetores usando distância cosseno. No Windows, o local padrão é `%LOCALAPPDATA%\AssistenteVirtualDF\vetor-v2`; em outros sistemas, é `Dados/vetor-v2/`. `VECTOR_DB_PATH` permite configurar outro local. O índice é derivado e pode ser recriado a partir do CSV e das fontes baixadas.
-5. **Verificação de escopo:** antes de gerar texto, GPT-4o classifica semanticamente a pergunta como dentro ou fora do escopo informativo. A classificação considera a intenção da frase e o histórico recente; não usa uma palavra-chave isolada nem o resultado da busca para justificar uma resposta. Solicitações fora do escopo e operações individuais (consulta/cadastro/aprovação) recebem uma abstenção fixa.
-6. **Recuperação e geração:** o RAG expande alguns termos populares, busca trechos, limita distância, filtra a versão atual e deduplica por programa. Se a pergunta for pertinente mas não houver contexto suficiente, informa que não encontrou evidência. GPT-4o redige uma resposta com as fontes recuperadas.
-7. **Aplicação:** a API entrega a resposta e as referências ao front-end.
+1. `programas_sociais_legislacao_links_oficiais.csv` fornece os dados estruturados dos 42 programas. As fichas em `base/` são geradas pelo CSV; os documentos em `fontes/` preservam texto legislativo oficial baixado.
+2. `dataset.py` valida colunas, registros e URLs, cria seções por programa e trechos da legislação. Os metadados mantêm nome, órgão informado, público, critérios, leis e fonte juntos.
+3. `ingestao.py` envia os trechos em lotes ao Ollama para obter embeddings com `bge-m3` e persiste-os no ChromaDB com distância cosseno.
+4. A busca expande expressões populares, consulta a versão atual do corpus e deduplica resultados por programa. O limiar `RAG_MIN_SIMILARITY` (padrão `0.532`) descarta candidatos de baixa similaridade.
+5. `compose_answer()` monta a resposta com campos revisados da base: primeiro programa completo, referências numéricas e, quando houver, apenas os nomes dos próximos resultados. Não há classificação nem geração de resposta por LLM.
+6. A API entrega resposta e referências. O resultado não confirma elegibilidade.
 
-O mapeamento dos requisitos do segundo desafio, o estado das evidências e os passos para a demonstração estão em [`semana_2.md`](../../Documentacao/semana_2.md).
+O limiar 0.532 foi medido no corpus menor usado no relatório da Semana 3. O corpus atual inclui textos legislativos adicionais; valide ou recalibre o limiar com perguntas de validação separadas antes de uso real.
 
 ```mermaid
 flowchart LR
-    CSV["CSV curado<br/>42 programas"] --> Validate["Validar esquema,<br/>campos e URLs"]
-    Validate --> Docs["Documentos derivados<br/>4 seções por programa"]
-    CSV --> Fetch["Baixar URLs legislativas oficiais"]
-    Fetch --> Laws["Textos integrais validados<br/>fontes/"]
-    Docs --> Chunks["Chunking contextual"]
-    Laws --> Chunks
-    Chunks --> Embed["Ollama<br/>bge-m3"]
-    Embed --> Store[("ChromaDB<br/>AppData Local/AssistenteVirtualDF/vetor-v2")]
-    Question["Pergunta"] --> Expand["Expansões de termos"]
-    Expand --> QueryEmbed["Ollama<br/>bge-m3"]
-    QueryEmbed --> Search["Busca vetorial<br/>versão + distância"]
-    Store --> Search
-    Search --> Dedupe["Deduplicar por programa"]
-    Dedupe --> Answer["OpenAI<br/>GPT-4o"]
-    Answer --> API["API"]
-    API --> UI["Front-end"]
+    CSV["CSV curado + fontes oficiais"] --> Chunks["Validação e trechos contextualizados"]
+    Chunks --> Embed["Ollama: bge-m3"]
+    Embed --> Store[("ChromaDB: vetor-v3")]
+    Question["Pergunta"] --> Expand["Expansões populares"]
+    Expand --> Query["Embedding da pergunta: bge-m3"]
+    Store --> Search["Busca cosseno + limiar 0.532"]
+    Query --> Search
+    Search --> Template["Resposta determinística + citações"]
+    Template --> API["FastAPI"]
 ```
 
-## O que já foi feito no RAG
+## RAGAS
 
-- Centralização do código de RAG em `Dados/rag/`; não há uma segunda implementação usada pelo back-end.
-- Validação do CSV e preservação explícita de critérios e público-alvo ausentes ou parciais.
-- Coleta de textos legislativos integrais apenas de domínios oficiais, com validação do conteúdo e aviso explícito para links indisponíveis ou formatos não suportados.
-- Divisão por seções semânticas, com o programa e a seção no contexto de cada trecho.
-- Persistência de embeddings no ChromaDB no caminho local padrão do sistema.
-- Expansão de consultas para alguns termos cotidianos, filtro por versão do conjunto, limite de distância e deduplicação por programa.
-- Respostas orientadas a usar somente os trechos encontrados, citar as fontes, explicitar lacunas e não decidir elegibilidade.
-- Classificação semântica de escopo e geração com OpenAI GPT-4o; Ollama é usado somente para embeddings.
-- Contexto de geração melhorado com nome do programa, órgão responsável e status dos critérios em campos separados; o prompt agora proíbe deduzir o órgão pelo tema, título da fonte ou URL. A temperatura está em zero para reduzir variação, sem garantir ausência total de alucinações.
-- Avaliação RAGAS unificada com o RAG da API: a mesma busca, classificador e geração são testados, inclusive com seis casos fora do escopo.
-- Testes automatizados de parsing, indexação, recuperação, filtros, abstenção, citações e integração da API.
+O RAGAS avalia respostas do fluxo real, mas não gera a resposta do produto. Por padrão, o juiz é `qwen2.5:3b` no endpoint OpenAI-compatível local do Ollama. A avaliação não exige chave OpenAI nem gera custo de API. Configure `OLLAMA_EVALUATION_MODEL` para outro modelo local.
 
-## O que ainda não foi feito
-
-- **Curadoria da base:** 27 textos legislativos integrais foram coletados de páginas oficiais e indexados. Dois links da Imprensa Nacional são PDFs e ainda não são extraídos; uma página legislativa retornou erro temporário. A coleta atinge o mínimo de 20 documentos, mas as informações de elegibilidade da planilha permanecem parciais e precisam de revisão humana.
-- **Cobertura completa do DF:** os 42 registros são programas federais; o catálogo distrital não está completo.
-- **Autenticação:** há apenas telas de protótipo em `Front-end/conta.html`. Login, cadastro, recuperação de senha, envio de token e gerenciamento de contas estão desativados; não há API de autenticação, banco de contas nem serviço de e-mail.
-- **Garantia de veracidade das respostas:** o modelo pode errar mesmo com recuperação correta. O protótipo precisa de testes de resposta com perguntas reais e revisão humana antes de uso institucional.
-
-## Instalação e execução
-
-Instale as dependências do back-end, configure sua chave da OpenAI e mantenha o Ollama em execução para os embeddings:
+Instalação e execução opcional:
 
 ```powershell
-python -m pip install -r .\Back-end\requirements.txt
-$env:OPENAI_API_KEY = "sua-chave"
-ollama pull bge-m3
+python -m pip install -r .\Dados-RAG\RAG\requirements-avaliacao.txt
+ollama pull qwen2.5:3b
+python .\Dados-RAG\RAG\avaliar_ragas.py todos --limite 2
+python .\Dados-RAG\RAG\avaliar_ragas.py todos
 ```
 
-Baixe/atualize os textos legislativos e gere os vetores depois de modificar o CSV ou as fontes:
+A avaliação coleta as 27 perguntas versionadas em `avaliacao/casos.jsonl`, incluindo seis perguntas fora do escopo. Faithfulness e Context Utilization comparam a resposta determinística aos contextos recuperados; Context Precision e Context Recall usam também as referências do arquivo de casos. Essas quatro métricas usam um juiz LLM local e as notas dependem da qualidade desse modelo e da referência.
+
+As métricas RAGAS de resposta/contexto são calculadas somente nos casos em escopo. O juiz `qwen2.5:3b` interpretou incorretamente um teste de abstenção, então aderência ao escopo não é apresentada como uma nota subjetiva: `acerto_top_1`, `acerto_top_k`, `resposta_com_contexto_em_escopo`, `abstencao_correta` e `decisao_escopo_correta` são verificações objetivas baseadas no programa esperado e no escopo declarado no conjunto. Esses indicadores não são métricas RAGAS. As referências dos casos foram redigidas a partir da base local e ainda não têm validação humana independente; trate Context Precision/Recall como exploratórias até revisar essas referências. `acerto_top_k` mede se o programa esperado aparece nos resultados, não se a resposta que destaca o primeiro resultado está correta.
+
+Para medir ranking da recuperação e abstenção sem juiz LLM:
 
 ```powershell
-python .\Dados\rag\baixar_fontes.py
-python .\Dados\rag\ingestao.py
+python .\Dados-RAG\RAG\avaliar.py
 ```
 
-Consulte trechos ou avalie a recuperação@5:
+## Testes locais
 
 ```powershell
-python .\Dados\rag\buscar.py "Tem ajuda para comprar o botijão de gás?"
-python .\Dados\rag\buscar.py --responder "Como faço para não pagar a inscrição do Enem?"
-python .\Dados\rag\avaliar.py
+python .\Dados-RAG\RAG\testes-automatizados\executar_testes.py
 ```
 
-`avaliar.py` mede se o programa esperado aparece nos primeiros cinco resultados; não mede a precisão factual das respostas geradas. Nesta revisão, o resultado foi **11/11 (100%)** para os casos de teste definidos. No Windows, o banco persistente fica em `%LOCALAPPDATA%\AssistenteVirtualDF\vetor-v2`; a recuperação requer `bge-m3`, e classificação/geração requerem `OPENAI_API_KEY`. Use um caminho sem acentos ao configurar `VECTOR_DB_PATH` no Windows.
+O comando roda os testes unitários do back-end e do RAG, sem precisar do Ollama. Use `--com-ragas` para acrescentar a avaliação local integrada; veja `testes-automatizados/COMO_EXECUTAR.txt`.
 
-## Avaliação automatizada RAG + RAGAS
+## Atualização do índice
 
-Instale as dependências extras do avaliador uma vez:
+Depois de atualizar o CSV ou as fontes oficiais:
 
 ```powershell
-python -m pip install -r .\Dados\rag\requirements-avaliacao.txt
+python .\Dados-RAG\RAG\baixar_fontes.py
+python .\Dados-RAG\RAG\ingestao.py
 ```
 
-Com `OPENAI_API_KEY` configurada, Ollama ativo para embeddings e índice já ingerido, execute uma amostra curta e depois a bateria completa:
+O banco vetorial é derivado e fica por padrão em `%LOCALAPPDATA%\AssistenteVirtualDF\vetor-v3` no Windows. `VECTOR_DB_PATH`, `OLLAMA_URL`, `OLLAMA_EMBEDDING_MODEL` e `RAG_MIN_SIMILARITY` podem ser configurados por variáveis de ambiente.
 
-```powershell
-python .\Dados\rag\avaliar_ragas.py todos --limite 2
-python .\Dados\rag\avaliar_ragas.py todos
-```
+## Limitações
 
-Os 27 casos versionados em `avaliacao/casos.jsonl` usam a implementação de produção, incluindo seis perguntas fora do escopo com palavras como “gás” e “Bolsa Família” como distrações. `scope_adherence` avalia as respostas dentro e fora do escopo; `abstencao_correta` e `acerto_top_k` são indicadores objetivos do projeto. Faithfulness e Context Utilization são calculadas para casos dentro do escopo; Context Precision e Context Recall também dependem de uma referência revisada. Resultados são salvos em `avaliacao/amostras.jsonl` e `avaliacao/resultados/`. Falhas do RAGAS ficam explícitas nos resultados e fazem a execução terminar com erro; nenhuma nota é inventada como fallback.
-
-Para executar testes unitários e a avaliação integrada em um único comando:
-
-```powershell
-python .\Dados\rag\testes-automatizados\executar_testes.py
-```
-
-Esse comando roda os testes locais e, se passarem, coleta e avalia a bateria completa (chamadas à OpenAI com custo). Para rodar sem chamadas externas, use `--apenas-unitarios`; `--limite 2` restringe a bateria integrada.
-
-Para repetir somente os casos fora do escopo sem sobrescrever a bateria completa:
-
-```powershell
-python .\Dados\rag\avaliar_ragas.py todos --fora-do-escopo --amostras .\Dados\rag\avaliacao\amostras_fora.jsonl --saida .\Dados\rag\avaliacao\resultados_fora
-```
+- Há 42 programas federais; o conjunto não representa todos os benefícios do DF.
+- Critérios ausentes ou parciais permanecem explicitamente incompletos.
+- A similaridade do embedding não prova que a pergunta é social nem que o resultado é elegível. Uma recusa por limiar pode ser incorreta.
+- As métricas da Semana 3 são resultados experimentais no conjunto testado, não garantia de precisão em produção.

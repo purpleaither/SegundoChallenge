@@ -12,8 +12,8 @@ from .fontes import MIN_SOURCE_DOCUMENTS, SOURCE_DOCUMENTS_PATH, read_source_doc
 from .rag import DATASET_VERSION, SourceChunk, chunk_text, is_official_url
 
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
-CSV_PATH = PROJECT_ROOT / "Dados" / "programas_sociais_legislacao_links_oficiais.csv"
+RAG_ROOT = Path(__file__).resolve().parent
+CSV_PATH = RAG_ROOT.parent / "programas_sociais_legislacao_links_oficiais.csv"
 REQUIRED_COLUMNS = {
     "programa",
     "esfera",
@@ -186,7 +186,16 @@ def build_program_chunks(rows: list[dict[str, str]]) -> list[SourceChunk]:
             "dataset_version": DATASET_VERSION,
             "program_id": program_id,
             "program_name": row["programa"],
+            "current_name": row["nome_atual_encontrado_2026"],
             "agency_id": row["orgao_responsavel"],
+            "summary": row["descricao_categoria"],
+            "benefit_type": row["tipo_beneficio"],
+            "audience": row["descricao_publico_alvo"],
+            "criteria": row["criterios_elegibilidade_resumidos"],
+            "legislation_base": row["legislacao_base"],
+            "regulation": row["regulamentacao_principal"],
+            "recent_update": row["atualizacao_normativa_recente"],
+            "legislation_notes": row["observacoes_legislacao"],
             "title": row["fonte_documental"],
             "url": row["url_fonte"],
             "legislation_url": row["url_fonte_legislacao"],
@@ -246,7 +255,16 @@ def build_official_source_chunks(
                 "dataset_version": DATASET_VERSION,
                 "program_id": program_id,
                 "program_name": row["programa"],
+                "current_name": row["nome_atual_encontrado_2026"],
                 "agency_id": row["orgao_responsavel"],
+                "summary": row["descricao_categoria"],
+                "benefit_type": row["tipo_beneficio"],
+                "audience": row["descricao_publico_alvo"],
+                "criteria": row["criterios_elegibilidade_resumidos"],
+                "legislation_base": row["legislacao_base"],
+                "regulation": row["regulamentacao_principal"],
+                "recent_update": row["atualizacao_normativa_recente"],
+                "legislation_notes": row["observacoes_legislacao"],
                 "title": document.title,
                 "url": document.url,
                 "legislation_url": document.url,

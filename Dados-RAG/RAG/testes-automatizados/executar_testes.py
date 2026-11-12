@@ -8,15 +8,27 @@ import unittest
 TEST_DIR = Path(__file__).resolve().parent
 RAG_DIR = TEST_DIR.parent
 PROJECT_ROOT = RAG_DIR.parents[1]
+BACKEND_DIR = PROJECT_ROOT / "Back-end"
 EVALUATOR = RAG_DIR / "avaliar_ragas.py"
-sys.path.insert(0, str(PROJECT_ROOT))
+sys.path.insert(0, str(RAG_DIR.parent))
 
 
 def run_unit_tests() -> bool:
-    suite = unittest.defaultTestLoader.discover(
-        start_dir=str(TEST_DIR),
-        pattern="test_*.py",
-        top_level_dir=str(TEST_DIR),
+    loader = unittest.defaultTestLoader
+    suite = unittest.TestSuite()
+    suite.addTests(
+        loader.discover(
+            start_dir=str(BACKEND_DIR),
+            pattern="test_*.py",
+            top_level_dir=str(BACKEND_DIR),
+        )
+    )
+    suite.addTests(
+        loader.discover(
+            start_dir=str(TEST_DIR),
+            pattern="test_*.py",
+            top_level_dir=str(TEST_DIR),
+        )
     )
     if not suite.countTestCases():
         print("Nenhum teste automatizado foi encontrado.", file=sys.stderr)
@@ -30,7 +42,12 @@ def main() -> int:
     parser.add_argument(
         "--apenas-unitarios",
         action="store_true",
-        help="Executa somente os testes locais, sem chamadas pagas à OpenAI",
+        help="Mantido por compatibilidade; os testes unitários são o padrão",
+    )
+    parser.add_argument(
+        "--com-ragas",
+        action="store_true",
+        help="Também executa a avaliação RAGAS com um juiz local do Ollama",
     )
     parser.add_argument("--limite", type=int, help="Limita os casos da avaliação RAGAS")
     parser.add_argument(
@@ -41,11 +58,15 @@ def main() -> int:
     args = parser.parse_args()
     if args.limite is not None and args.limite < 1:
         parser.error("--limite deve ser positivo.")
+    if args.fora_do_escopo and not args.com_ragas:
+        parser.error("--fora-do-escopo requer --com-ragas.")
+    if args.limite is not None and not args.com_ragas:
+        parser.error("--limite requer --com-ragas.")
 
     print("Executando testes unitários...", flush=True)
     if not run_unit_tests():
         return 1
-    if args.apenas_unitarios:
+    if not args.com_ragas:
         return 0
 
     command = [sys.executable, str(EVALUATOR), "todos"]
@@ -62,7 +83,7 @@ def main() -> int:
                 str(evaluation_dir / "resultados_fora"),
             ]
         )
-    print("\nExecutando avaliação RAG + RAGAS com OpenAI...", flush=True)
+    print("\nExecutando avaliação RAG + RAGAS com Ollama local...", flush=True)
     return subprocess.run(command, cwd=PROJECT_ROOT, check=False).returncode
 
 
