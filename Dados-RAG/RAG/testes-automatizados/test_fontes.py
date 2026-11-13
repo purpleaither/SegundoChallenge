@@ -4,9 +4,9 @@ import sys
 import unittest
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from Dados.rag.fontes import extract_official_html, source_title_from_url
+from RAG.fontes import extract_official_html, source_title_from_url
 
 
 class OfficialSourceParsingTests(unittest.TestCase):

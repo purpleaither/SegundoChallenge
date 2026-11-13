@@ -5,15 +5,45 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import MagicMock, patch
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from Dados.rag import rag
-from Dados.rag.avaliar_ragas import format_contexts, read_jsonl
+from RAG import rag
+from RAG.avaliar_ragas import (
+    expected_program_rank,
+    format_contexts,
+    metric_inputs,
+    read_jsonl,
+    scope_retrieval_metrics,
+)
 
 
 class RagasEvaluationInputTests(unittest.TestCase):
+    def test_expected_program_rank_distinguishes_top_one_from_top_k(self) -> None:
+        self.assertEqual(
+            expected_program_rank("Bolsa Família", ["BPC", "Bolsa Família"]),
+            2,
+        )
+        self.assertIsNone(expected_program_rank("Bolsa Família", ["BPC"]))
+
+    def test_scope_metrics_separate_abstention_from_in_scope_coverage(self) -> None:
+        self.assertEqual(
+            scope_retrieval_metrics(in_scope=True, has_context=True),
+            {
+                "abstencao_correta": None,
+                "resposta_com_contexto_em_escopo": True,
+                "decisao_escopo_correta": True,
+            },
+        )
+        self.assertEqual(
+            scope_retrieval_metrics(in_scope=False, has_context=False),
+            {
+                "abstencao_correta": True,
+                "resposta_com_contexto_em_escopo": None,
+                "decisao_escopo_correta": True,
+            },
+        )
+
     def test_read_jsonl_validates_required_case_fields(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_directory:
             path = Path(temporary_directory) / "casos.jsonl"
@@ -52,40 +82,51 @@ class RagasEvaluationInputTests(unittest.TestCase):
             [{"program_name": "Programa X", "agency_id": "MDS", "title": "Fonte oficial", "text": "Trecho"}]
         )
 
+        self.assertIn("Programa: Programa X", contexts[0])
+        self.assertIn("Órgão responsável: MDS", contexts[0])
+        self.assertIn("Fonte: Fonte oficial", contexts[0])
+        self.assertIn("Trecho recuperado: Trecho", contexts[0])
+
+    def test_context_precision_and_recall_receive_only_supported_fields(self) -> None:
+        inputs = metric_inputs(
+            "context_precision",
+            "Pergunta",
+            "Resposta",
+            ["Contexto"],
+            "Referência",
+        )
+
         self.assertEqual(
-            contexts,
-            ["Programa: Programa X\nÓrgão: MDS\nFonte: Fonte oficial\nTrecho: Trecho"],
+            inputs,
+            {
+                "user_input": "Pergunta",
+                "retrieved_contexts": ["Contexto"],
+                "reference": "Referência",
+            },
+        )
+
+    def test_faithfulness_receives_the_response_and_retrieved_context(self) -> None:
+        inputs = metric_inputs(
+            "faithfulness",
+            "Pergunta",
+            "Resposta",
+            ["Contexto"],
+        )
+
+        self.assertEqual(
+            inputs,
+            {
+                "user_input": "Pergunta",
+                "response": "Resposta",
+                "retrieved_contexts": ["Contexto"],
+            },
         )
 
 
-class OpenAIChatTests(unittest.TestCase):
-    def test_request_uses_openai_chat_completions_and_json_mode(self) -> None:
-        client = MagicMock()
-        client.__enter__.return_value = client
-        client.chat.completions.create.return_value.choices = [
-            MagicMock(message=MagicMock(content='{"scope":"in_scope"}'))
-        ]
-        messages = [{"role": "user", "content": "Quais benefícios existem?"}]
-
-        with (
-            patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}),
-            patch("openai.OpenAI", return_value=client) as openai_client,
-        ):
-            answer = rag.request_openai(messages, json_object=True)
-
-        self.assertEqual(answer, '{"scope":"in_scope"}')
-        openai_client.assert_called_once_with(api_key="test-key", timeout=120)
-        client.chat.completions.create.assert_called_once_with(
-            model=rag.OPENAI_CHAT_MODEL,
-            messages=messages,
-            temperature=0,
-            response_format={"type": "json_object"},
-        )
-
-    def test_request_fails_clearly_without_api_key(self) -> None:
-        with patch.dict("os.environ", {"OPENAI_API_KEY": ""}):
-            with self.assertRaisesRegex(rag.ModelUnavailableError, "OPENAI_API_KEY"):
-                rag.request_openai([{"role": "user", "content": "Olá"}])
+class LocalEvaluationConfigTests(unittest.TestCase):
+    def test_ragas_judge_defaults_to_local_ollama_model(self) -> None:
+        self.assertTrue(rag.OLLAMA_EVALUATION_MODEL)
+        self.assertTrue(rag.OLLAMA_URL.startswith("http://127.0.0.1:"))
 
 
 if __name__ == "__main__":

@@ -5,10 +5,10 @@ from pathlib import Path
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(PROJECT_ROOT))
+sys.path.insert(0, str(PROJECT_ROOT / "Dados-RAG"))
 
-from Dados.rag.dataset import read_programs  # noqa: E402
-from Dados.rag.fontes import MIN_SOURCE_DOCUMENTS, download_official_sources  # noqa: E402
+from RAG.dataset import read_programs  # noqa: E402
+from RAG.fontes import MIN_SOURCE_DOCUMENTS, download_official_sources  # noqa: E402
 
 
 def main() -> int:

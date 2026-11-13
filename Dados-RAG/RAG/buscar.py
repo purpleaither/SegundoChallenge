@@ -6,9 +6,9 @@ from pathlib import Path
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(PROJECT_ROOT))
+sys.path.insert(0, str(PROJECT_ROOT / "Dados-RAG"))
 
-from Dados.rag.rag import KnowledgeBase, ModelUnavailableError, generate_answer  # noqa: E402
+from RAG.rag import KnowledgeBase, ModelUnavailableError, compose_answer  # noqa: E402
 
 
 def main() -> int:
@@ -18,9 +18,8 @@ def main() -> int:
     parser.add_argument(
         "--responder",
         action="store_true",
-        help="Gera uma resposta com OpenAI usando apenas os trechos recuperados",
+        help="Gera uma resposta determinística usando os dados recuperados",
     )
-    parser.add_argument("--modelo", help="Modelo de chat OpenAI (opcional; padrão: gpt-4o)")
     args = parser.parse_args()
     if args.top_k < 1:
         parser.error("--top-k precisa ser maior que zero.")
@@ -30,7 +29,7 @@ def main() -> int:
         knowledge_base = KnowledgeBase()
         results = knowledge_base.search(args.pergunta, limit=args.top_k)
         if args.responder:
-            print(generate_answer(args.pergunta, results, [], model=args.modelo))
+            print(compose_answer(results))
             return 0
     except ModelUnavailableError as exc:
         print(f"Não foi possível consultar o RAG: {exc}", file=sys.stderr)

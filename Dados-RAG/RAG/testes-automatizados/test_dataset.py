@@ -7,18 +7,18 @@ from pathlib import Path
 import sys
 from unittest.mock import patch
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from Dados.rag.dataset import (
+from RAG.dataset import (
     CSV_PATH,
     build_official_source_chunks,
     build_program_chunks,
     program_as_api_record,
     read_programs,
 )
-from Dados.rag.ingestao import write_program_documents
-from Dados.rag.fontes import source_filename
-from Dados.rag.rag import is_official_url
+from RAG.ingestao import write_program_documents
+from RAG.fontes import source_filename
+from RAG.rag import DATASET_VERSION, is_official_url
 
 
 class ProgramDatasetTests(unittest.TestCase):
@@ -63,8 +63,21 @@ class ProgramDatasetTests(unittest.TestCase):
         self.assertEqual(len(chunks), 168)
         self.assertEqual(len({chunk.metadata["program_id"] for chunk in chunks}), 42)
         self.assertIn("Ação de Distribuição de Alimentos", chunks[0].text)
-        self.assertEqual(chunks[0].metadata["dataset_version"], "programas-sociais-legislacao-v2")
+        self.assertEqual(chunks[0].metadata["dataset_version"], DATASET_VERSION)
         self.assertEqual(chunks[0].metadata["region"], "DF")
+
+    def test_program_chunks_preserve_fields_used_by_deterministic_answers(self) -> None:
+        bpc = next(
+            row for row in read_programs()
+            if row["programa"] == "Benefício de Prestação Continuada (BPC)"
+        )
+        metadata = build_program_chunks([bpc])[0].metadata
+
+        self.assertEqual(metadata["program_name"], bpc["programa"])
+        self.assertEqual(metadata["agency_id"], bpc["orgao_responsavel"])
+        self.assertEqual(metadata["criteria"], bpc["criterios_elegibilidade_resumidos"])
+        self.assertEqual(metadata["legislation_base"], bpc["legislacao_base"])
+        self.assertEqual(metadata["criteria_status"], bpc["status_criterio"])
 
     def test_official_legislation_chunks_require_twenty_complete_sources(self) -> None:
         rows = read_programs()
@@ -159,7 +172,7 @@ class ProgramDatasetTests(unittest.TestCase):
             (output_path / "antigo.md").write_text("Conteúdo anterior.", encoding="utf-8")
             rows = read_programs()[:1]
 
-            with patch("Dados.rag.ingestao.BASE_PATH", output_path):
+            with patch("RAG.ingestao.BASE_PATH", output_path):
                 generated = write_program_documents(rows)
 
             files = list(output_path.glob("*.md"))
