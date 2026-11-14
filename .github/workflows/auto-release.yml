@@ -1,0 +1,29 @@
+name: Release Semanal Automático
+
+on:
+  schedule:
+    # Roda toda segunda-feira às 06:00 horas
+    - cron: '0 9 * * 1'
+  # Permite rodar manualmente na aba Actions do GitHub quando precisar testar "[Run workflow]"
+  workflow_dispatch:
+
+permissions:
+  # Permissões necessárias para criar uma release: permissão de escrita
+  contents: write
+
+jobs:
+  gerar-release-semanal:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Baixar código do repositório
+        uses: actions/checkout@v5
+        with:
+          # Baixa o histórico completo das commits do repositório
+          fetch-depth: 0
+
+      - name: Criar Release Semanal
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="v$(date +'%Y.%m.%d')"
+          gh release create "$TAG" --title "Release Semanal - $TAG" --generate-notes
