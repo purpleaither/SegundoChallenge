@@ -109,9 +109,29 @@ def resposta_natural(pergunta: str, programas: list[dict]) -> str:
 def main():
     args = sys.argv[1:]
     mostrar_trechos = "--trechos" in args
-    pergunta = " ".join(a for a in args if a != "--trechos") or input("Pergunta: ")
+    usar_llm = "--llm" in args
+    modelo = None
+    limpos = []
+    i = 0
+    while i < len(args):
+        if args[i] in ("--trechos", "--llm"):
+            i += 1
+        elif args[i] == "--modelo" and i + 1 < len(args):
+            modelo = args[i + 1]
+            i += 2
+        else:
+            limpos.append(args[i])
+            i += 1
+
+    pergunta = " ".join(limpos) or input("Pergunta: ")
     colecao = abrir_colecao()
 
+    if usar_llm:
+        from comparar import responder_rag
+
+        resposta, _, _ = responder_rag(pergunta, colecao=colecao, modelo=modelo)
+        print(resposta)
+        return
     if not mostrar_trechos:
         print(resposta_natural(pergunta, buscar_programas(colecao, pergunta)))
         return
