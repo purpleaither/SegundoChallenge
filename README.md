@@ -1,17 +1,17 @@
 -AINDA NÃO FINALIZADO-
-# Assistente virtual de benefícios sociais
+# 🏡 Assistente virtual de benefícios sociais 🏡
 
-## Descrição do projeto
+## Descrição do projeto ✏️
 
 Chatbot institucional que ajuda na busca de programas sociais potencialmente relacionados à situação do usuário. A resposta é informativa, usa trechos recuperados da base e cita fontes, mas não decide elegibilidade.
 
-## Arquitetura adotada (RAG x LLM)
+## Arquitetura adotada (RAG x LLM) 🏗️
 
 O relatório [Documentos/semana3-resumo.md](Documentos/semana3-resumo.md) registra a decisão da Semana 03: usar a configuração T5 — embeddings multilíngues `bge-m3` pelo Ollama, busca vetorial ChromaDB, limiar de similaridade e resposta determinística. Isso elimina chamadas pagas e evita que um modelo reescreva ou invente leis e critérios.
 
 O limiar padrão é `RAG_MIN_SIMILARITY=0.532`, valor experimental do relatório. Como a base atual também inclui textos legislativos, esse valor precisa ser recalibrado em um conjunto de perguntas independente antes de qualquer uso institucional.
 
-## Organização dos arquivos
+## Organização dos arquivos 🧱
 
 COMPLEMENTAR COM OUTROS CAMINHOS
 - `Back-end/`: API FastAPI e testes do servidor.
@@ -22,11 +22,18 @@ COMPLEMENTAR COM OUTROS CAMINHOS
 - `Dados-RAG/RAG/`: preparação dos dados, ingestão, recuperação, respostas determinísticas, avaliação RAGAS e testes.
 - `Dados-RAG/RAG/base/`: fichas Markdown derivadas do CSV.
 - `Dados-RAG/RAG/fontes/`: textos legislativos oficiais baixados.
-- `Documentos/`: relatórios do projeto.
+- `Dados-RAG/testes-automatizados/`: Testes unitários e script executar_testes.py, também inicia a bateria RAGAS integrada.
+- `Dados-RAG/avaliacao/`: Casos versionados do teste integrado RAG + RAGAS, os resultados locais são gerados ao executar a avaliação.
+- `Dados-RAG/__init__.py`: Arquivo Python que identifica Dados como pacote e contém uma breve descrição. Em algumas versões do Python, os diretórios podem ser importados sem ele, mas matemos para deixar explicito a estrutura do pacote e é convencional.
+- `COMO_RODAR.txt`: Comandos no terminal para instalar dependências, iniciar o Ollama, testar respostas, roda testes automáticos e avaliar com RAGAS.
+- `__pycache__/`: Pasta criada automaticamente pelo Python para guardar bytecode compilado (.pyc) e acelerar importações futuras. 
+- `%LOCALAPPDATA%\AssistenteVirtualDF\vetor-v2`: Banco vetorial persistente do ChromaDB no Windows. É derivado dos dados e recriável com script de ingestão.
+- `Documentos/`: Relatórios e documentos do projeto.
 
-## Instalação e execução no Windows
+## Instalação e execução no Windows 💻
 
-1. Pré-requisitos: <br>
+1. Pré-requisitos: 
+- Python 3.12.
 
 2. Preparação do ambiente
 Crie um ambiente com Python 3.12 e instale as dependências da API:
@@ -53,9 +60,9 @@ python -m uvicorn main:app --reload --app-dir .\Back-end
 
 A documentação interativa fica em `http://127.0.0.1:8000/docs`. No Windows, o índice persistente fica por padrão em `%LOCALAPPDATA%\AssistenteVirtualDF\vetor-v3`; configure `VECTOR_DB_PATH` para outro local, se necessário. Depois da atualização para o conjunto v3, execute a ingestão novamente antes de consultar a API.
 
-## Sistema multiagentes
+## Sistema multiagentes 👷
 
-## Testes
+## Testes 🧩
 
 Com as dependências instaladas, um comando executa os testes unitários do back-end e do RAG, sem Ollama, chave de API ou chamadas pagas:
 
@@ -65,6 +72,6 @@ python .\Dados-RAG\RAG\testes-automatizados\executar_testes.py
 
 O passo a passo está em [Dados-RAG/RAG/testes-automatizados/COMO_EXECUTAR.txt](Dados-RAG/RAG/testes-automatizados/COMO_EXECUTAR.txt).
 
-## Limitações conhecidas
+## Limitações conhecidas 🚧
 
-## Colaboradores
+## Colaboradores ♟️
