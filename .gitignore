@@ -19,3 +19,4 @@ rag/resultados/*.txt
 
 # Segredos
 .env
+sistema_multiagente/.env
