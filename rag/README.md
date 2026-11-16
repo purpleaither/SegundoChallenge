@@ -16,13 +16,7 @@ python3 -m venv .venv                     # uma vez só
 .venv/bin/python ingestao.py              # monta a base e o banco vetorial (rodar de novo se o CSV mudar)
 .venv/bin/python buscar.py "Estou desempregada e tenho três filhos, tenho direito a algum auxílio?"
 .venv/bin/python buscar.py --trechos "..."  # mostra os trechos crus recuperados, com score (demo técnica)
-.venv/bin/python buscar.py --llm "..."      # gera resposta com LLM local (Ollama) ancorada no RAG
-.venv/bin/python avaliar.py               # métricas de recuperação (Recall@4)
 
-# Semana 3: Comparação LLM Pura (sem contexto) × LLM com RAG (ChromaDB)
-.venv/bin/python comparar.py "tem ajuda para comprar o botijão de gás?" # compara uma pergunta no terminal
-.venv/bin/python comparar.py              # roda a bateria completa e gera relatorio_comparacao.md
-.venv/bin/python comparar.py --modelo qwen2.5:3b --limite 4 # escolhe o modelo e limita o nº de casos
 ```
 
 Na primeira execução, o Chroma baixa o modelo de embeddings (~80 MB). Para os comandos de geração

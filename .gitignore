@@ -19,3 +19,10 @@ rag/resultados/*.txt
 
 # Segredos
 .env
+
+# Frontend (Next.js)
+Frontend/node_modules/
+Frontend/.next/
+Frontend/next-env.d.ts
+Frontend/*.tsbuildinfo
+Frontend/.env*.local
