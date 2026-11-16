@@ -16,6 +16,7 @@ Uso (dentro de rag/):
 from __future__ import annotations
 
 import json
+import os
 import re
 import sys
 import time
@@ -29,7 +30,7 @@ from avaliar import DENTRO_DO_ESCOPO, FORA_DO_ESCOPO as FORA_ORIGINAL
 from buscar import TOP_K, abrir_colecao, expandir, normalizar
 from ingestao import PASTA_BASE, PASTA_DB, chunkar, ler_documento
 
-OLLAMA = "http://127.0.0.1:11434"
+OLLAMA = os.environ.get("OLLAMA_URL", "http://127.0.0.1:11434")  # no Docker: http://ollama:11434
 MODELO_LLM = "qwen2.5:3b"
 MODELO_EMB = "bge-m3"
 COLECAO_BGE = "beneficios_bge_m3"

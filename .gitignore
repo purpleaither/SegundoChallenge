@@ -20,3 +20,10 @@ rag/resultados/*.txt
 # Segredos
 .env
 sistema_multiagente/.env
+
+# Frontend (Next.js)
+Frontend/node_modules/
+Frontend/.next/
+Frontend/next-env.d.ts
+Frontend/*.tsbuildinfo
+Frontend/.env*.local
