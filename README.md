@@ -6,17 +6,23 @@ usando uma LLM local via Ollama, comparando **LLM Pura × LLM com RAG**.
 
 ## Como rodar
 
-Todos os comandos rodam **dentro da pasta `rag/`**:
+Todos os comandos rodam a partir da **raiz do repositório (`SegundoChallenge/`)**:
 
 ```bash
-cd SegundoChallenge/rag
+cd SegundoChallenge
 python3 -m venv .venv                     # uma vez só
 .venv/bin/pip install -r requirements.txt # uma vez só
 
-.venv/bin/python ingestao.py              # monta a base e o banco vetorial (rodar de novo se o CSV mudar)
-.venv/bin/python buscar.py "Estou desempregada e tenho três filhos, tenho direito a algum auxílio?"
-.venv/bin/python buscar.py --trechos "..."  # mostra os trechos crus recuperados, com score (demo técnica)
+.venv/bin/python rag/ingestao.py              # monta a base e o banco vetorial (rodar de novo se o CSV mudar)
+.venv/bin/python rag/buscar.py "Estou desempregada e tenho três filhos, tenho direito a algum auxílio?"
+.venv/bin/python rag/buscar.py --trechos "..."  # mostra os trechos crus recuperados, com score (demo técnica)
+.venv/bin/python rag/buscar.py --llm "..."      # gera resposta com LLM local (Ollama) ancorada no RAG
+.venv/bin/python rag/avaliar.py               # métricas de recuperação (Recall@4)
 
+# Semana 3: Comparação LLM Pura (sem contexto) × LLM com RAG (ChromaDB)
+.venv/bin/python rag/comparar.py "tem ajuda para comprar o botijão de gás?" # compara uma pergunta no terminal
+.venv/bin/python rag/comparar.py              # roda a bateria completa e gera rag/relatorio_comparacao.md
+.venv/bin/python rag/comparar.py --modelo qwen2.5:3b --limite 4 # escolhe o modelo e limita o nº de casos
 ```
 
 Na primeira execução, o Chroma baixa o modelo de embeddings (~80 MB). Para os comandos de geração
@@ -26,16 +32,18 @@ Tudo roda 100% offline, sem chave de API e sem custo.
 
 ## Arquivos
 
-| Arquivo | O que faz |
+| Arquivo / Pasta | O que faz |
 |---|---|
-| `../programas_sociais_legislacao_links_oficiais.csv` | Planilha curada pelo grupo (fonte da base) |
-| `ingestao.py` | Pipeline de ingestão: CSV → documentos → chunks → embeddings → ChromaDB |
-| `base/*.md` | Base curada: **42 documentos-fonte**, um por programa (gerados pela ingestão) |
-| `chroma_db/` | Banco vetorial persistido em disco |
-| `buscar.py` | Protótipo de recuperação e geração (`--trechos` e `--llm`) |
-| `avaliar.py` | 21 perguntas de teste com o programa esperado + 4 fora do escopo |
-| `comparar.py` | Integração com Ollama (`temperature=0.0`) e comparação **LLM Pura × RAG** |
-| `relatorio_comparacao.md` | Relatório comparativo gerado automaticamente por `comparar.py` |
+| `requirements.txt` | Dependências Python do projeto (usado pelo `.venv` na raiz) |
+| `Base de Dados e RAG /programas_sociais_legislacao_links_oficiais.csv` | Planilha curada pelo grupo (fonte da base) |
+| `rag/ingestao.py` | Pipeline de ingestão: CSV → documentos → chunks → embeddings → ChromaDB |
+| `rag/base/*.md` | Base curada: **42 documentos-fonte**, um por programa (gerados pela ingestão) |
+| `rag/chroma_db/` | Banco vetorial persistido em disco |
+| `rag/buscar.py` | Protótipo de recuperação e geração (`--trechos` e `--llm`) |
+| `rag/avaliar.py` | 21 perguntas de teste com o programa esperado + 4 fora do escopo |
+| `rag/comparar.py` | Integração com Ollama (`temperature=0.0`) e comparação **LLM Pura × RAG** |
+| `rag/relatorio_comparacao.md` | Relatório comparativo gerado automaticamente por `rag/comparar.py` |
+| `sistema_multiagente/` | Estrutura para o sistema multiagente (em desenvolvimento) |
 
 ## Base curada
 
@@ -107,9 +115,9 @@ um modelo de texto fixo a partir do documento de cada programa, sem LLM.
 - Erros: "quero fazer faculdade…" (trouxe Sisu e PNAES, que também são pertinentes, mas não o FIES
   Social) e "cesta de comida… fome" (não trouxe a Ação de Distribuição de Alimentos).
 
-## Comparação LLM Pura × RAG (`comparar.py` — Semana 3)
+## Comparação LLM Pura × RAG (`rag/comparar.py` — Semana 3)
 
-O módulo `comparar.py` conecta a recuperação no ChromaDB a uma LLM local via API HTTP do **Ollama**
+O módulo `rag/comparar.py` conecta a recuperação no ChromaDB a uma LLM local via API HTTP do **Ollama**
 (`http://localhost:11434/api/chat`, usando apenas `urllib.request` da biblioteca padrão e
 `temperature=0.0` conforme mitigação **MR01**).
 
@@ -118,7 +126,7 @@ Dois modos são executados e avaliados lado a lado:
 1. **LLM Pura (`responder_llm_pura`)**: recebe apenas a pergunta e o papel do assistente, respondendo
    com o conhecimento paramétrico do modelo.
 2. **LLM com RAG (`responder_rag`)**: recebe os documentos completos dos `TOP_K=4` programas
-   recuperados de `base/*.md` e instruções estritas para:
+   recuperados de `rag/base/*.md` e instruções estritas para:
    - **Ancoragem estrita (RIA02)**: usar exclusivamente os dados da base homologada, citando órgão
      responsável, lei base, regulamentação e atualizações normativas de 2024–2026 (ex.: *Gás do Povo*
      pela Lei nº 15.348/2026, *Luz do Povo* pela Lei nº 15.235/2025, biometria do BPC pela Portaria
@@ -130,7 +138,7 @@ Dois modos são executados e avaliados lado a lado:
      operacionais proibidos (consultar CPF/CadÚnico, cadastrar ou aprovar benefício).
 
 O resultado detalhado com métricas agregadas e respostas lado a lado é salvo em
-`relatorio_comparacao.md`.
+`rag/relatorio_comparacao.md`.
 
 ## Limitações e próximos passos
 

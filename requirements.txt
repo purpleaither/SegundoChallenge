@@ -1,0 +1,7 @@
+chromadb>=1.5
+langgraph
+langchain-google-genai
+langchain-chroma
+langchain-core
+pydantic
+python-dotenv
