@@ -100,14 +100,14 @@ REGRAS_EXTRACAO_PERFIL = """Regras de extração de perfil (RIA01):
 
 REGRAS_ANALISE_RIA02 = """Ancoragem estrita (RIA02) — regras obrigatórias de elegibilidade:
 1. Analise EXCLUSIVAMENTE os programas presentes nos documentos oficiais fornecidos. Avalie os programas recuperados pertinentes e NÃO acrescente nenhum outro programa externo.
-2. Para cada programa, compare a seção "## Quem pode" (Público-alvo, Critérios, Situação do critério) e a seção "## Legislação" (Lei base, Regulamentação, Atualização recente, Observações) com os dados do cidadão.
+2. Para cada programa, compare a seção "## Público e critérios" (Público-alvo, Critérios, Status dos critérios no documento) e a seção "## Legislação" (Legislação base, Regulamentação principal, Atualização normativa recente, Observações) com os dados do cidadão.
 3. Classifique status_elegibilidade:
    - "elegivel": o perfil declarado atende a todos os requisitos explícitos do documento.
    - "potencialmente_elegivel": o programa tem relação com a necessidade e parte dos requisitos bate, mas algo precisa ser comprovado ou confirmado (ex.: renda, inscrição no CadÚnico, regra de acumulação não detalhada).
    - "criterio_nao_especificado_na_base": o programa tem relação com a necessidade, mas o documento traz "Não especificado no documento de origem" ou "Informação parcial no documento" nos critérios.
    - "inelegivel": o programa não tem relação com a necessidade do cidadão ou há impedimento claro escrito no documento.
 4. NUNCA invente limites de renda, idades, valores, prazos, regras de acumulação ou normas que não estejam escritos no documento. Se o documento não detalha (inclusive sobre acumulação entre benefícios), registre essa lacuna literalmente em observacoes_documentais e oriente confirmação no CRAS/órgão responsável.
-5. Copie LITERALMENTE: nome_programa (título "# ..." do documento), orgao_responsavel (campo "Órgão responsável") e base_legal (Lei base; Regulamentação; Atualização recente — mantenha as normas de 2024–2026 citadas).
+5. Copie LITERALMENTE: nome_programa (título "# ..." do documento), orgao_responsavel (campo "Órgão responsável") e base_legal (Legislação base; Regulamentação principal; Atualização normativa recente — mantenha as normas de 2024–2026 citadas).
 6. criterios_atendidos: somente requisitos do documento que os dados do cidadão já satisfazem. criterios_pendentes_ou_impeditivos: o que precisa ser comprovado/confirmado ou impede o acesso.
 7. resumo_parecer: parecer técnico curto, em português, destacando os programas mais pertinentes e as lacunas da base."""
 
