@@ -12,7 +12,12 @@ if str(PASTA_ATUAL) not in sys.path:
 
 from config import TIER_POR_AGENTE
 from graph import executar_fluxo
-from schemas import EstadoSistema
+from schemas import (
+    STATUS_ENCAMINHAMENTO_AJUDA,
+    STATUS_ERRO_API,
+    STATUS_SUCESSO_COM_ENCAMINHAMENTO_AJUDA,
+    EstadoSistema,
+)
 
 
 def _resumir_documentos(documentos: list[str] | None) -> list[str]:
@@ -36,15 +41,38 @@ def _resolver_tier_exibicao(chave_agente: str) -> str:
     return TIER_POR_AGENTE.get(agente_base, "deterministico/rag")
 
 
+def _rotulo_cabecalho_debug(estado: EstadoSistema) -> str:
+    """Resolve o rótulo de exibição no cabeçalho do modo --debug distinguindo encaminhamento de bloqueio."""
+    padrao = estado.get("padrao_execucao")
+    tem_apoio = bool(estado.get("categoria_encaminhamento"))
+    if padrao:
+        if tem_apoio:
+            return f"{padrao.upper()} + ENCAMINHAMENTO DE AJUDA"
+        return padrao.upper()
+    status_api = estado.get("status_api")
+    if status_api == STATUS_ENCAMINHAMENTO_AJUDA:
+        return "ENCAMINHAMENTO DE AJUDA"
+    if status_api == STATUS_ERRO_API:
+        return "ERRO DE API"
+    return "BLOQUEADO"
+
+
 def exibir_debug(estado: EstadoSistema) -> None:
     """Exibe o padrão selecionado, os modelos escalados e o trace intermediário do caminho executado."""
     sep = "=" * 82
     padrao = estado.get("padrao_execucao")
+    status_api = estado.get("status_api")
+    eh_encaminhamento = bool(estado.get("categoria_encaminhamento")) or status_api in (
+        STATUS_ENCAMINHAMENTO_AJUDA,
+        STATUS_SUCESSO_COM_ENCAMINHAMENTO_AJUDA,
+    )
+    rotulo_cabecalho = _rotulo_cabecalho_debug(estado)
+
     print(f"\n{sep}")
-    print(f"DEBUG DO PIPELINE MULTIAGENTE — LANGGRAPH (PADRÃO: {(padrao or 'BLOQUEADO').upper()})")
+    print(f"DEBUG DO PIPELINE MULTIAGENTE — LANGGRAPH (PADRÃO: {rotulo_cabecalho})")
     print(sep)
     print(f"Mensagem do usuário : {estado.get('mensagem_usuario')}")
-    print(f"Status da API       : {estado.get('status_api')}")
+    print(f"Status da API       : {status_api}")
 
     modelos = estado.get("modelos_utilizados") or {}
     if modelos:
@@ -54,15 +82,27 @@ def exibir_debug(estado: EstadoSistema) -> None:
             print(f"    - {ag:24s} -> {mod} (tier: {tier})")
 
     print(f"\n[1] AGENTE GUARDRAIL + SELETOR DE PADRÃO")
-    print(f"    dentro_do_escopo     : {estado.get('dentro_do_escopo')}")
-    print(f"    padrao_execucao      : {padrao}")
+    print(f"    dentro_do_escopo         : {estado.get('dentro_do_escopo')}")
+    print(f"    padrao_execucao          : {padrao}")
     if estado.get("justificativa_padrao"):
-        print(f"    justificativa_padrao : {estado.get('justificativa_padrao')}")
+        print(f"    justificativa_padrao     : {estado.get('justificativa_padrao')}")
+    if estado.get("categoria_encaminhamento"):
+        print(f"    categoria_encaminhamento : {estado.get('categoria_encaminhamento')}")
+        if estado.get("dentro_do_escopo"):
+            print("    acao_apoio_adicional     : Mensagem de apoio ativada em paralelo à orientação de benefícios.")
     if estado.get("motivo_rejeicao"):
-        print(f"    motivo_rejeicao      : {estado.get('motivo_rejeicao')}")
+        rotulo_motivo = (
+            "motivo_encaminhamento"
+            if (eh_encaminhamento and status_api != STATUS_ERRO_API)
+            else "motivo_rejeicao"
+        )
+        print(f"    {rotulo_motivo:24s} : {estado.get('motivo_rejeicao')}")
 
     if not estado.get("dentro_do_escopo"):
-        print("\n    -> Fluxo encerrado no Guardrail (END).")
+        if eh_encaminhamento:
+            print("\n    -> Fluxo encerrado no Guardrail com encaminhamento assistido à rede de ajuda/proteção (END).")
+        else:
+            print("\n    -> Fluxo encerrado no Guardrail (END).")
         print(sep)
         return
 
@@ -131,6 +171,24 @@ def exibir_debug(estado: EstadoSistema) -> None:
     print(sep)
 
 
+def exibir_resposta_cidadao(estado_final: EstadoSistema) -> None:
+    """Imprime a orientação ao cidadão, separando benefícios e mensagem adicional de apoio quando ambas existem."""
+    resposta_beneficios = estado_final.get("resposta_beneficios")
+    mensagem_apoio = estado_final.get("mensagem_apoio")
+    if resposta_beneficios and mensagem_apoio:
+        sep = "=" * 82
+        print("\nRESPOSTA AO CIDADÃO (PROGRAMAS E BENEFÍCIOS SOCIAIS):\n")
+        print(resposta_beneficios)
+        print(f"\n{sep}")
+        print("MENSAGEM ADICIONAL DE APOIO E CANAIS OFICIAIS DE AJUDA:")
+        print(f"{sep}\n")
+        print(mensagem_apoio)
+        return
+
+    print("\nRESPOSTA AO CIDADÃO:\n")
+    print(estado_final.get("resposta_final", ""))
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Executa o Assistente Socioassistencial Multiagente (Padrão, ReWOO e Reflexion em LangGraph)."
@@ -163,8 +221,7 @@ def main() -> None:
     if args.debug:
         exibir_debug(estado_final)
 
-    print("\nRESPOSTA AO CIDADÃO:\n")
-    print(estado_final.get("resposta_final", ""))
+    exibir_resposta_cidadao(estado_final)
 
 
 if __name__ == "__main__":
