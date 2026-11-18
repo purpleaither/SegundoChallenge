@@ -75,3 +75,53 @@ O passo a passo está em [Dados-RAG/RAG/testes-automatizados/COMO_EXECUTAR.txt](
 ## Limitações conhecidas 🚧
 
 ## Colaboradores ♟️
+
+<table>
+  <tr>
+    <td align="center" valign="top">
+      <a href="https://github.com/anagiulias">
+        <img src="https://github.com/anagiulias.png?size=120" width="100" />
+      </a>
+      <br />
+      <strong>GIULIO SANTOS</strong>
+      <br />
+      <a href="https://github.com/anagiulias">@Giulio</a>
+    </td>
+    <td align="center" valign="top">
+      <a href="https://github.com/IanLucca12">
+        <img src="https://github.com/IanLucca12.png?size=120" width="100" />
+      </a>
+      <br />
+      <strong>IAN MESQUITA</strong>
+      <br />
+      <a href="https://github.com/IanLucca12">@IanLucca12</a>
+    </td>
+    <td align="center" valign="top">
+      <a href="https://github.com/idelmondez">
+        <img src="https://github.com/idelmondez.png?size=120" width="100" />
+      </a>
+      <br />
+      <strong>IVAN OLIVEIRA</strong>
+      <br />
+      <a href="https://github.com/idelmondez">@idelmondez</a>
+    </td>
+    <td align="center" valign="top">
+      <a href="https://github.com/volktz">
+        <img src="https://github.com/volktz.png?size=120" width="100" />
+      </a>
+      <br />
+      <strong>PAULO SILVA</strong>
+      <br />
+      <a href="https://github.com/volktz">@volktz</a>
+    </td>
+    <td align="center" valign="top">
+      <a href="https://github.com/purpleaither">
+        <img src="https://github.com/purpleaither.png?size=120" width="100" />
+      </a>
+      <br />
+      <strong>THAYNA DUTRA</strong>
+      <br />
+      <a href="https://github.com/purpleaither">@purpleaither</a>
+    </td>
+  </tr>
+</table>
