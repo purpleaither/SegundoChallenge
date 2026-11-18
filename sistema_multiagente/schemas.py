@@ -1,20 +1,30 @@
 from typing import TypedDict, List, Literal, Optional
 from pydantic import BaseModel, Field
 
+PadraoExecucao = Literal["padrao", "rewoo", "reflexion"]
+
 
 class EstadoSistema(TypedDict):
     mensagem_usuario: str
     dentro_do_escopo: bool
     motivo_rejeicao: Optional[str]
+    padrao_execucao: Optional[PadraoExecucao]
+    justificativa_padrao: Optional[str]
     perfil_extraido: Optional[dict]
     query_busca: Optional[str]
     documentos_encontrados: Optional[List[str]]
+    plano_rewoo: Optional[List[dict]]
+    evidencias_rewoo: Optional[dict]
     analise_elegibilidade: Optional[dict]
+    critica_reflexion: Optional[dict]
+    iteracao_reflexion: int
+    historico_reflexion: Optional[List[dict]]
+    modelos_utilizados: Optional[dict]
     resposta_final: str
     status_api: str
 
 
-# Agente 1 — Guardrail (RIA07 / P02)
+# Agente 1 — Guardrail + Seletor de Padrão (RIA07 / P02)
 class ValidacaoEscopo(BaseModel):
     eh_valido: bool = Field(
         description=(
@@ -25,10 +35,23 @@ class ValidacaoEscopo(BaseModel):
             "de benefício, fazer cadastro pelo chat)."
         )
     )
-    motivo: str = Field(description="Breve justificativa da decisão.")
+    motivo: str = Field(description="Breve justificativa da decisão de escopo.")
     tipo_bloqueio: Optional[Literal["fora_de_escopo", "operacao_proibida_cpf_cadastro"]] = Field(
         default=None,
         description="Preencher somente quando eh_valido=False; None quando a mensagem é válida.",
+    )
+    padrao_execucao: Optional[PadraoExecucao] = Field(
+        default=None,
+        description=(
+            "Obrigatório quando eh_valido=True; None quando eh_valido=False. "
+            "Use 'padrao' para dúvidas diretas sobre um único benefício ou relatos simples; "
+            "'rewoo' para relatos multifacetados com múltiplas vulnerabilidades distintas ou perguntas comparativas/amplas; "
+            "'reflexion' para casos limítrofes/ambíguos, potenciais conflitos/acumulação de benefícios ou exigência explícita de detalhamento legal/normativo (2024-2026)."
+        ),
+    )
+    justificativa_padrao: Optional[str] = Field(
+        default=None,
+        description="Explicação objetiva em uma frase sobre o porquê da escolha do padrão quando eh_valido=True.",
     )
 
 
@@ -93,3 +116,39 @@ ItemElegibilidade = AvaliacaoPrograma
 class AnaliseElegibilidade(BaseModel):
     programas_avaliados: List[AvaliacaoPrograma] = Field(default_factory=list)
     resumo_parecer: str = Field(description="Parecer técnico curto consolidando a análise.")
+
+
+# Padrão ReWOO (Planner -> Worker -> Solver)
+class PassoPlanoReWOO(BaseModel):
+    id_evidencia: str = Field(description="Identificador sequencial da evidência, ex.: '#E1', '#E2'.")
+    foco_necessidade: str = Field(description="Vulnerabilidade, público ou dúvida específica investigada neste passo.")
+    query_busca: str = Field(
+        description="Consulta semântica combinando termos populares e técnicos (RIA01) para recuperar fichas no ChromaDB."
+    )
+    categoria: Optional[str] = Field(default=None, description="Filtro opcional de categoria documental, ou None.")
+    esfera: Optional[str] = Field(default=None, description="Filtro opcional de esfera (ex.: 'Federal'), ou None.")
+
+
+class PlanoReWOO(BaseModel):
+    perfil: PerfilSocioeconomico
+    passos: List[PassoPlanoReWOO] = Field(
+        description="Lista de 2 a 4 passos independentes (#E1, #E2...) cobrindo todas as frentes do relato."
+    )
+
+
+# Padrão Reflexion (Actor -> Crítico -> Revisor)
+class AvaliacaoCriticaReflexion(BaseModel):
+    aprovado: bool = Field(
+        description=(
+            "True SOMENTE se a análise e a resposta respeitarem integralmente a ancoragem documental (RIA02), "
+            "citarem nome oficial/órgão/legislação sem omissões relevantes e incluírem próximos passos + aviso P02."
+        )
+    )
+    problemas_encontrados: List[str] = Field(
+        default_factory=list,
+        description="Lista objetiva de alucinações, omissões documentais/legais ou falhas de transparência/P02.",
+    )
+    instrucoes_correcao: str = Field(
+        default="",
+        description="Instruções diretas e acionáveis para o Revisor corrigir os problemas (vazio quando aprovado=True).",
+    )
