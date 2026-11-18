@@ -1,34 +1,40 @@
-# Frontend — GovernancIA
+# Front-end
 
-Interface de chat em Next.js. As perguntas vão para `/api/perguntar`, que o Next repassa para a
-API Python em `rag/api.py` (configuração T5: busca bge-m3 + abstenção + resposta por texto fixo).
+Interface de chat criada com Next.js, React e TypeScript. A página principal
+está em `app/page.tsx`, os estilos em `app/globals.css` e as chamadas HTTP em
+`lib/api.ts`.
 
-## Com Docker (tudo junto)
+## Executar localmente
 
-Na pasta `SegundoChallenge/`:
+Requer Node.js e npm. Na pasta `Front-end`:
 
-```bash
-docker compose up --build   # abra http://localhost:3000
+```powershell
+npm ci
+npm run dev
 ```
 
-Sobe o Ollama, baixa o `bge-m3` (só na primeira vez), a API em `:8000` e o frontend em `:3000`.
+Abra `http://localhost:3000`. Para apontar o proxy do Next.js para outro
+endereço da API, configure `BACKEND_URL` em `Front-end/.env.local`:
 
-## Sem Docker
+```text
+BACKEND_URL=http://127.0.0.1:8000
+```
 
-1. Backend (em outro terminal, com o Ollama rodando e o modelo `bge-m3` baixado):
+O proxy encaminha as rotas `/api/*` para esse endereço. O padrão é
+`http://127.0.0.1:8000`.
 
-   ```bash
-   cd SegundoChallenge/rag
-   .venv/bin/pip install -r requirements.txt   # uma vez só
-   .venv/bin/uvicorn api:app --reload --port 8000
-   ```
+## Integração com a API
 
-2. Frontend:
+Atualmente, `lib/api.ts` envia `POST /api/perguntar` com `{ "pergunta": "..." }`
+e espera uma resposta com `resposta` e `programas`. A API FastAPI em
+`Back-end/main.py` ainda expõe outro contrato, incluindo `POST /api/chat`, que
+recebe `question` e retorna `answer` e `citations`. Portanto, o contrato do
+chat do front-end ainda precisa ser alinhado ao back-end para que a conversa
+funcione integrada.
 
-   ```bash
-   cd SegundoChallenge/Frontend
-   npm install      # uma vez só
-   npm run dev      # http://localhost:3000
-   ```
+## Verificações
 
-Se a API estiver em outro endereço, defina `BACKEND_URL` (padrão: `http://127.0.0.1:8000`).
+```powershell
+npm run typecheck
+npm run build
+```
