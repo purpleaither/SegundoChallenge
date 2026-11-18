@@ -1,12 +1,10 @@
-"""Orquestração do fluxo multiagente em LangGraph (5 nós sequenciais com Guardrail condicional)."""
+"""Orquestração multiagente em LangGraph com roteamento dinâmico entre Padrão, ReWOO e Reflexion."""
 
 from pathlib import Path
 import sys
 
 from dotenv import load_dotenv
 
-# Garante que o diretório sistema_multiagente/ e seu .env sejam encontrados
-# mesmo quando executado a partir da raiz do repositório.
 PASTA_ATUAL = Path(__file__).resolve().parent
 if str(PASTA_ATUAL) not in sys.path:
     sys.path.insert(0, str(PASTA_ATUAL))
@@ -15,25 +13,33 @@ load_dotenv(PASTA_ATUAL / ".env")
 from langgraph.graph import END, START, StateGraph
 
 from agents import (
+    MAX_ITERACOES_REFLEXION,
     STATUS_ERRO_API,
     agente_analista_elegibilidade,
     agente_comunicador,
     agente_extrator_perfil,
     agente_guardrail,
+    agente_reflexion_critico,
+    agente_reflexion_revisor,
     agente_retriever,
+    agente_rewoo_planner,
+    agente_rewoo_solver,
+    agente_rewoo_worker,
 )
 from schemas import EstadoSistema
 
 
 def rotear_pos_guardrail(state: EstadoSistema) -> str:
-    """Segue para extrator_perfil apenas se a mensagem estiver dentro do escopo e sem erro de API."""
-    if state.get("dentro_do_escopo") and state.get("status_api") != STATUS_ERRO_API:
-        return "extrator_perfil"
-    return END
+    """Encerra se bloqueado/erro; caso válido, desvia entre ReWOO e o pipeline base (Padrão/Reflexion)."""
+    if not state.get("dentro_do_escopo") or state.get("status_api") == STATUS_ERRO_API:
+        return END
+    if state.get("padrao_execucao") == "rewoo":
+        return "rewoo_planner"
+    return "extrator_perfil"
 
 
 def _rotear_ou_encerrar(proximo_no: str):
-    """Interrompe o fluxo imediatamente caso algum nó anterior tenha registrado erro de API."""
+    """Interrompe o fluxo imediatamente (fail-closed) caso o nó anterior tenha registrado erro de API."""
     def _roteador(state: EstadoSistema) -> str:
         if state.get("status_api") == STATUS_ERRO_API:
             return END
@@ -42,28 +48,56 @@ def _rotear_ou_encerrar(proximo_no: str):
     return _roteador
 
 
+def rotear_pos_comunicador(state: EstadoSistema) -> str:
+    """No padrão 'padrao' encerra; no padrão 'reflexion' encaminha para auditoria do Crítico."""
+    if state.get("status_api") == STATUS_ERRO_API:
+        return END
+    if state.get("padrao_execucao") == "reflexion":
+        return "reflexion_critico"
+    return END
+
+
+def rotear_pos_critico(state: EstadoSistema) -> str:
+    """Encerra se aprovado pelo Crítico, erro de API ou limite de revisões atingido; senão revisa."""
+    if state.get("status_api") == STATUS_ERRO_API:
+        return END
+    critica = state.get("critica_reflexion") or {}
+    iteracao = int(state.get("iteracao_reflexion") or 0)
+    if critica.get("aprovado") is True or iteracao >= MAX_ITERACOES_REFLEXION:
+        return END
+    return "reflexion_revisor"
+
+
 def construir_grafo():
     workflow = StateGraph(EstadoSistema)
 
-    # 1. Registro dos 5 nós/agentes especializados
+    # 1. Registro dos nós (Guardrail/Seletor + Padrão + ReWOO + Reflexion)
     workflow.add_node("guardrail", agente_guardrail)
     workflow.add_node("extrator_perfil", agente_extrator_perfil)
     workflow.add_node("retriever", agente_retriever)
     workflow.add_node("analista_elegibilidade", agente_analista_elegibilidade)
     workflow.add_node("comunicador", agente_comunicador)
 
-    # 2. Fluxo inicial e desvio condicional pós-Guardrail
+    workflow.add_node("rewoo_planner", agente_rewoo_planner)
+    workflow.add_node("rewoo_worker", agente_rewoo_worker)
+    workflow.add_node("rewoo_solver", agente_rewoo_solver)
+
+    workflow.add_node("reflexion_critico", agente_reflexion_critico)
+    workflow.add_node("reflexion_revisor", agente_reflexion_revisor)
+
+    # 2. Entrada e roteamento dinâmico pós-Guardrail
     workflow.add_edge(START, "guardrail")
     workflow.add_conditional_edges(
         "guardrail",
         rotear_pos_guardrail,
         {
             "extrator_perfil": "extrator_perfil",
+            "rewoo_planner": "rewoo_planner",
             END: END,
         },
     )
 
-    # 3. Sequência principal (com proteção contra falha de API intermediária)
+    # 3. Caminho Padrão + Base do Reflexion
     workflow.add_conditional_edges(
         "extrator_perfil",
         _rotear_ou_encerrar("retriever"),
@@ -79,7 +113,42 @@ def construir_grafo():
         _rotear_ou_encerrar("comunicador"),
         {"comunicador": "comunicador", END: END},
     )
-    workflow.add_edge("comunicador", END)
+    workflow.add_conditional_edges(
+        "comunicador",
+        rotear_pos_comunicador,
+        {
+            "reflexion_critico": "reflexion_critico",
+            END: END,
+        },
+    )
+
+    # 4. Ciclo Reflexion (Crítico <-> Revisor com limite MAX_ITERACOES_REFLEXION)
+    workflow.add_conditional_edges(
+        "reflexion_critico",
+        rotear_pos_critico,
+        {
+            "reflexion_revisor": "reflexion_revisor",
+            END: END,
+        },
+    )
+    workflow.add_conditional_edges(
+        "reflexion_revisor",
+        _rotear_ou_encerrar("reflexion_critico"),
+        {"reflexion_critico": "reflexion_critico", END: END},
+    )
+
+    # 5. Caminho ReWOO (Planner -> Worker -> Solver -> END)
+    workflow.add_conditional_edges(
+        "rewoo_planner",
+        _rotear_ou_encerrar("rewoo_worker"),
+        {"rewoo_worker": "rewoo_worker", END: END},
+    )
+    workflow.add_conditional_edges(
+        "rewoo_worker",
+        _rotear_ou_encerrar("rewoo_solver"),
+        {"rewoo_solver": "rewoo_solver", END: END},
+    )
+    workflow.add_edge("rewoo_solver", END)
 
     return workflow.compile()
 
@@ -92,15 +161,23 @@ def estado_inicial(mensagem: str) -> EstadoSistema:
         "mensagem_usuario": mensagem.strip(),
         "dentro_do_escopo": False,
         "motivo_rejeicao": None,
+        "padrao_execucao": None,
+        "justificativa_padrao": None,
         "perfil_extraido": None,
         "query_busca": None,
         "documentos_encontrados": None,
+        "plano_rewoo": None,
+        "evidencias_rewoo": None,
         "analise_elegibilidade": None,
+        "critica_reflexion": None,
+        "iteracao_reflexion": 0,
+        "historico_reflexion": [],
+        "modelos_utilizados": {},
         "resposta_final": "",
         "status_api": "iniciado",
     }
 
 
 def executar_fluxo(mensagem: str) -> EstadoSistema:
-    """Executa o pipeline completo de 5 agentes para a mensagem do usuário e retorna o EstadoSistema final."""
+    """Executa o grafo multiagente para a mensagem do usuário e retorna o EstadoSistema final."""
     return app.invoke(estado_inicial(mensagem))
