@@ -14,6 +14,8 @@ from langgraph.graph import END, START, StateGraph
 
 from agents import (
     MAX_ITERACOES_REFLEXION,
+    STATUS_BLOQUEADO,
+    STATUS_ENCAMINHAMENTO_AJUDA,
     STATUS_ERRO_API,
     agente_analista_elegibilidade,
     agente_comunicador,
@@ -25,13 +27,17 @@ from agents import (
     agente_rewoo_planner,
     agente_rewoo_solver,
     agente_rewoo_worker,
+    consolidar_encaminhamento_ajuda,
 )
-from schemas import EstadoSistema
+from schemas import STATUS_INICIADO, EstadoSistema
 
 
 def rotear_pos_guardrail(state: EstadoSistema) -> str:
-    """Encerra se bloqueado/erro; caso válido, desvia entre ReWOO e o pipeline base (Padrão/Reflexion)."""
-    if not state.get("dentro_do_escopo") or state.get("status_api") == STATUS_ERRO_API:
+    """Encerra se não houver escopo de benefícios ou erro; caso válido, desvia entre ReWOO e pipeline base."""
+    if (
+        not state.get("dentro_do_escopo")
+        or state.get("status_api") in (STATUS_ERRO_API, STATUS_BLOQUEADO, STATUS_ENCAMINHAMENTO_AJUDA)
+    ):
         return END
     if state.get("padrao_execucao") == "rewoo":
         return "rewoo_planner"
@@ -39,39 +45,39 @@ def rotear_pos_guardrail(state: EstadoSistema) -> str:
 
 
 def _rotear_ou_encerrar(proximo_no: str):
-    """Interrompe o fluxo imediatamente (fail-closed) caso o nó anterior tenha registrado erro de API."""
+    """Em erro de API, desvia para o consolidador final (preservando mensagem_apoio se houver)."""
     def _roteador(state: EstadoSistema) -> str:
         if state.get("status_api") == STATUS_ERRO_API:
-            return END
+            return "consolidar_encaminhamento_ajuda"
         return proximo_no
 
     return _roteador
 
 
 def rotear_pos_comunicador(state: EstadoSistema) -> str:
-    """No padrão 'padrao' encerra; no padrão 'reflexion' encaminha para auditoria do Crítico."""
+    """No padrão 'padrao' consolida saída; no padrão 'reflexion' encaminha para auditoria do Crítico."""
     if state.get("status_api") == STATUS_ERRO_API:
-        return END
+        return "consolidar_encaminhamento_ajuda"
     if state.get("padrao_execucao") == "reflexion":
         return "reflexion_critico"
-    return END
+    return "consolidar_encaminhamento_ajuda"
 
 
 def rotear_pos_critico(state: EstadoSistema) -> str:
-    """Encerra se aprovado pelo Crítico, erro de API ou limite de revisões atingido; senão revisa."""
+    """Consolida saída se aprovado pelo Crítico, erro de API ou limite atingido; senão revisa."""
     if state.get("status_api") == STATUS_ERRO_API:
-        return END
+        return "consolidar_encaminhamento_ajuda"
     critica = state.get("critica_reflexion") or {}
     iteracao = int(state.get("iteracao_reflexion") or 0)
     if critica.get("aprovado") is True or iteracao >= MAX_ITERACOES_REFLEXION:
-        return END
+        return "consolidar_encaminhamento_ajuda"
     return "reflexion_revisor"
 
 
 def construir_grafo():
     workflow = StateGraph(EstadoSistema)
 
-    # 1. Registro dos nós (Guardrail/Seletor + Padrão + ReWOO + Reflexion)
+    # 1. Registro dos nós (Guardrail/Seletor + Padrão + ReWOO + Reflexion + Consolidador de Apoio)
     workflow.add_node("guardrail", agente_guardrail)
     workflow.add_node("extrator_perfil", agente_extrator_perfil)
     workflow.add_node("retriever", agente_retriever)
@@ -84,6 +90,7 @@ def construir_grafo():
 
     workflow.add_node("reflexion_critico", agente_reflexion_critico)
     workflow.add_node("reflexion_revisor", agente_reflexion_revisor)
+    workflow.add_node("consolidar_encaminhamento_ajuda", consolidar_encaminhamento_ajuda)
 
     # 2. Entrada e roteamento dinâmico pós-Guardrail
     workflow.add_edge(START, "guardrail")
@@ -101,24 +108,27 @@ def construir_grafo():
     workflow.add_conditional_edges(
         "extrator_perfil",
         _rotear_ou_encerrar("retriever"),
-        {"retriever": "retriever", END: END},
+        {"retriever": "retriever", "consolidar_encaminhamento_ajuda": "consolidar_encaminhamento_ajuda"},
     )
     workflow.add_conditional_edges(
         "retriever",
         _rotear_ou_encerrar("analista_elegibilidade"),
-        {"analista_elegibilidade": "analista_elegibilidade", END: END},
+        {
+            "analista_elegibilidade": "analista_elegibilidade",
+            "consolidar_encaminhamento_ajuda": "consolidar_encaminhamento_ajuda",
+        },
     )
     workflow.add_conditional_edges(
         "analista_elegibilidade",
         _rotear_ou_encerrar("comunicador"),
-        {"comunicador": "comunicador", END: END},
+        {"comunicador": "comunicador", "consolidar_encaminhamento_ajuda": "consolidar_encaminhamento_ajuda"},
     )
     workflow.add_conditional_edges(
         "comunicador",
         rotear_pos_comunicador,
         {
             "reflexion_critico": "reflexion_critico",
-            END: END,
+            "consolidar_encaminhamento_ajuda": "consolidar_encaminhamento_ajuda",
         },
     )
 
@@ -128,27 +138,28 @@ def construir_grafo():
         rotear_pos_critico,
         {
             "reflexion_revisor": "reflexion_revisor",
-            END: END,
+            "consolidar_encaminhamento_ajuda": "consolidar_encaminhamento_ajuda",
         },
     )
     workflow.add_conditional_edges(
         "reflexion_revisor",
         _rotear_ou_encerrar("reflexion_critico"),
-        {"reflexion_critico": "reflexion_critico", END: END},
+        {"reflexion_critico": "reflexion_critico", "consolidar_encaminhamento_ajuda": "consolidar_encaminhamento_ajuda"},
     )
 
-    # 5. Caminho ReWOO (Planner -> Worker -> Solver -> END)
+    # 5. Caminho ReWOO (Planner -> Worker -> Solver -> Consolidador -> END)
     workflow.add_conditional_edges(
         "rewoo_planner",
         _rotear_ou_encerrar("rewoo_worker"),
-        {"rewoo_worker": "rewoo_worker", END: END},
+        {"rewoo_worker": "rewoo_worker", "consolidar_encaminhamento_ajuda": "consolidar_encaminhamento_ajuda"},
     )
     workflow.add_conditional_edges(
         "rewoo_worker",
         _rotear_ou_encerrar("rewoo_solver"),
-        {"rewoo_solver": "rewoo_solver", END: END},
+        {"rewoo_solver": "rewoo_solver", "consolidar_encaminhamento_ajuda": "consolidar_encaminhamento_ajuda"},
     )
-    workflow.add_edge("rewoo_solver", END)
+    workflow.add_edge("rewoo_solver", "consolidar_encaminhamento_ajuda")
+    workflow.add_edge("consolidar_encaminhamento_ajuda", END)
 
     return workflow.compile()
 
@@ -161,6 +172,7 @@ def estado_inicial(mensagem: str) -> EstadoSistema:
         "mensagem_usuario": mensagem.strip(),
         "dentro_do_escopo": False,
         "motivo_rejeicao": None,
+        "categoria_encaminhamento": None,
         "padrao_execucao": None,
         "justificativa_padrao": None,
         "perfil_extraido": None,
@@ -173,8 +185,10 @@ def estado_inicial(mensagem: str) -> EstadoSistema:
         "iteracao_reflexion": 0,
         "historico_reflexion": [],
         "modelos_utilizados": {},
+        "resposta_beneficios": None,
+        "mensagem_apoio": None,
         "resposta_final": "",
-        "status_api": "iniciado",
+        "status_api": STATUS_INICIADO,
     }
 
 

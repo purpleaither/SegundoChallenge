@@ -16,20 +16,33 @@ if str(PASTA_ATUAL) not in sys.path:
 load_dotenv(PASTA_ATUAL / ".env")
 
 from config import invocar_estruturado, invocar_texto
-from rag import executar_buscas_rewoo, recuperar_documentos_com_perfil, violacao_operacional_p02
+from rag import (
+    contem_dados_ou_pedido_p02,
+    detectar_situacao_critica_deterministica,
+    eh_pedido_ilicito_explicito,
+    executar_buscas_rewoo,
+    inferir_categoria_sensivel_fallback,
+    neutralizar_trechos_criticos_para_extracao,
+    possui_contexto_socioeconomico,
+    recuperar_documentos_com_perfil,
+    violacao_operacional_p02,
+)
 from schemas import (
+    CATEGORIAS_ENCAMINHAMENTO_AJUDA,
+    STATUS_BLOQUEADO,
+    STATUS_EM_PROCESSAMENTO,
+    STATUS_ENCAMINHAMENTO_AJUDA,
+    STATUS_ERRO_API,
+    STATUS_SUCESSO,
+    STATUS_SUCESSO_COM_ENCAMINHAMENTO_AJUDA,
     AnaliseElegibilidade,
     AvaliacaoCriticaReflexion,
+    CategoriaEncaminhamentoAjuda,
     EstadoSistema,
     PerfilSocioeconomico,
     PlanoReWOO,
     ValidacaoEscopo,
 )
-
-STATUS_ERRO_API = "erro_api"
-STATUS_BLOQUEADO = "bloqueado_guardrail"
-STATUS_EM_PROCESSAMENTO = "em_processamento"
-STATUS_SUCESSO = "sucesso"
 
 MAX_ITERACOES_REFLEXION = 2
 
@@ -52,6 +65,86 @@ MENSAGEM_OPERACAO_PROIBIDA = (
     "casa, levando documento com foto e CPF. Por favor, não compartilhe seus dados pessoais neste chat. "
     "Se quiser, posso explicar como funcionam os programas sociais e quem tem direito a eles."
 )
+
+MENSAGEM_AJUDA_AUTOEXTERMINIO = (
+    "Sinto muito que você esteja passando por um momento tão difícil. A sua vida importa e você não precisa "
+    "enfrentar essa dor sem apoio.\n\n"
+    "Este assistente é apenas informativo sobre programas sociais, mas existem serviços públicos e gratuitos "
+    "prontos para acolher e ajudar você agora mesmo:\n\n"
+    "- **CVV — Centro de Valorização da Vida (Ligue 188)**: atendimento gratuito, sigiloso e disponível 24 horas "
+    "por dia em todo o Brasil, também por chat no site oficial **https://cvv.org.br**.\n"
+    "- **SAMU (Ligue 192)** ou **Corpo de Bombeiros (Ligue 193)**: procure imediatamente em caso de emergência "
+    "ou risco imediato à sua integridade.\n"
+    "- **Rede de Saúde Pública (SUS)**: procure o **CAPS (Centro de Atenção Psicossocial)**, uma **UPA 24h** "
+    "ou a **UBS (Posto de Saúde)** mais próxima da sua casa para cuidado presencial gratuito.\n"
+    "- **CRAS / CREAS**: unidades da Assistência Social que também podem oferecer acolhimento e orientação "
+    "presencial para você e sua família.\n\n"
+    "Por favor, entre em contato com um desses canais ou peça apoio a alguém de sua confiança agora."
+)
+
+MENSAGEM_AJUDA_CODIGO_PENAL = (
+    "Entendo a gravidade do que foi trazido, mas preciso esclarecer com respeito que este assistente é "
+    "exclusivamente informativo sobre programas sociais: ele não registra ocorrências policiais, não substitui "
+    "órgãos de proteção e jamais pode apoiar ou orientar práticas ilícitas.\n\n"
+    "Se você ou alguém próximo estiver sofrendo violência, ameaça, crime ou violação de direitos, ou precisar "
+    "de orientação jurídica gratuita, procure os canais oficiais:\n\n"
+    "- **Polícia Militar (Ligue 190)**: para emergência, agressão em andamento ou risco imediato.\n"
+    "- **Polícia Civil / Delegacia mais próxima (Disque 197)**: para registrar boletim de ocorrência e investigação.\n"
+    "- **Central de Atendimento à Mulher (Ligue 180)**: orientação e denúncia gratuita 24h em casos de "
+    "violência doméstica e familiar.\n"
+    "- **Disque Direitos Humanos (Disque 100)**: denúncias de violações contra crianças, adolescentes, pessoas "
+    "idosas, pessoas com deficiência e população em vulnerabilidade.\n"
+    "- **Disque-Denúncia (181)**: para comunicar ilícitos de forma anônima.\n"
+    "- **CREAS (Centro de Referência Especializado de Assistência Social)**: acompanhamento socioassistencial "
+    "especializado a vítimas de violência ou violação de direitos (e **CRAS** para orientação sobre benefícios).\n"
+    "- **Defensoria Pública (Ligue 129)**: orientação e assistência jurídica pública e gratuita."
+)
+
+MENSAGEM_AJUDA_COOCORRENCIA = (
+    "Sinto muito pelo sofrimento e pela situação grave que você está vivendo. A sua vida e a sua segurança "
+    "vêm em primeiro lugar, e você não precisa enfrentar isso sem ajuda.\n\n"
+    "Este assistente é apenas informativo sobre programas sociais (não registra ocorrências nem apoia atos "
+    "ilícitos), mas há canais públicos gratuitos para acolher e proteger você imediatamente:\n\n"
+    "**1. Apoio imediato à vida e à saúde**\n"
+    "- **CVV — Centro de Valorização da Vida (Ligue 188)**: apoio emocional gratuito, sigiloso e 24h em todo o "
+    "Brasil, ou via chat em **https://cvv.org.br**.\n"
+    "- **SAMU (Ligue 192)** ou **Corpo de Bombeiros (Ligue 193)**: socorro imediato em caso de emergência médica.\n"
+    "- **CAPS (Centro de Atenção Psicossocial)**, **UPA 24h** ou **UBS (Posto de Saúde)** pelo **SUS**.\n\n"
+    "**2. Proteção urgente, denúncia e assistência gratuita**\n"
+    "- **Polícia Militar (Ligue 190)** para perigo ou agressão imediata e **Polícia Civil / Delegacia (Disque 197)** "
+    "ou **Disque-Denúncia (181)** para ocorrência.\n"
+    "- **Central de Atendimento à Mulher (Ligue 180)** para violência doméstica/familiar e **Disque Direitos "
+    "Humanos (Disque 100)** para violações de direitos.\n"
+    "- **CREAS / CRAS** para proteção socioassistencial especializada e **Defensoria Pública (Ligue 129)** para "
+    "orientação jurídica gratuita."
+)
+
+AVISO_PRIVACIDADE_DADOS_SENSIVEIS = (
+    "Observação de privacidade: este assistente não consulta CPF nem o CadÚnico e não realiza cadastros. "
+    "Por sua segurança, não compartilhe CPF ou documentos pessoais neste chat; apresente-os apenas diretamente "
+    "nos canais oficiais de atendimento."
+)
+
+MENSAGENS_ENCAMINHAMENTO_AJUDA: dict[CategoriaEncaminhamentoAjuda, str] = {
+    "autoexterminio": MENSAGEM_AJUDA_AUTOEXTERMINIO,
+    "codigo_penal": MENSAGEM_AJUDA_CODIGO_PENAL,
+    "autoexterminio_e_codigo_penal": MENSAGEM_AJUDA_COOCORRENCIA,
+}
+
+_MOTIVOS_DETERMINISTICOS_AJUDA: dict[CategoriaEncaminhamentoAjuda, str] = {
+    "autoexterminio": (
+        "Identificado sinal crítico de autoextermínio ou autolesão; realizado encaminhamento imediato para "
+        "canais oficiais de apoio à vida."
+    ),
+    "codigo_penal": (
+        "Identificada situação que envolve matéria do Código Penal (violência, violação de direitos ou ilícito); "
+        "realizado encaminhamento para canais oficiais de proteção e orientação."
+    ),
+    "autoexterminio_e_codigo_penal": (
+        "Identificada coocorrência de risco de autoextermínio e matéria penal; realizado encaminhamento "
+        "prioritário para preservação da vida e proteção oficial."
+    ),
+}
 
 
 def _erro_api(agente: str, erro: Exception) -> dict:
@@ -124,80 +217,322 @@ REGRAS_COMUNICACAO_P02 = f"""Regras obrigatórias de comunicação ao cidadão (
 
 
 # ---------------------------------------------------------------------------
-# Agente 1 — Guardrail + Seletor de Padrão de Execução (RIA07 / P02)
+# Agente 1 — Guardrail + Seletor de Padrão de Execução (RIA06 / RIA07 / P02)
 # ---------------------------------------------------------------------------
 PROMPT_GUARDRAIL = """Você é o Guardrail e Seletor de Arquitetura de um assistente público, exclusivamente informativo, sobre programas e benefícios sociais federais do Brasil.
-Você tem duas responsabilidades conjuntas: (A) validar o escopo da mensagem e (B) selecionar o padrão ideal de execução quando a mensagem for válida.
+Você avalia TRÊS dimensões complementares: (A1) necessidade de apoio/proteção especial, (A2) validade de escopo socioassistencial e (B) padrão ideal de execução quando houver escopo válido.
 
-PARTE A — Validação de Escopo (RIA07 / P02):
-Marque eh_valido=True (tipo_bloqueio=None) quando a mensagem:
-- relatar situação socioeconômica, familiar, de vulnerabilidade, saúde, deficiência, moradia, educação, trabalho/desemprego/renda, alimentação, água/luz/gás ou vida na zona rural; OU
-- trouxer dúvidas informativas sobre programas, benefícios, auxílios, descontos, isenções, leis/portarias ou direitos sociais (como funcionam, quem pode, pode acumular, qual a lei, onde pedir).
-A linguagem popular e informal ("tô sem emprego", "moro na roça", "botijão") é perfeitamente válida.
+REGRA CRÍTICA ANTIFALSO-POSITIVO (LINGUAGEM POPULAR E SAÚDE):
+- Expressões figuradas e metáforas coloquiais de aperto socioeconômico NÃO são autoextermínio nem crime. Exemplos com categoria_encaminhamento=None e eh_valido=True: "a conta de luz está me matando", "as dívidas estão me matando", "estou morrendo de preocupação com o aluguel", "me matando de trabalhar", "matar a fome dos meus filhos", "cortaram meu Bolsa Família".
+- Dúvidas informativas de saúde ou deficiência sem ideação de autolesão (ex.: "faço tratamento de depressão no CAPS, tenho direito ao BPC ou remédio gratuito?") têm categoria_encaminhamento=None e eh_valido=True.
 
-Marque eh_valido=False (e deixe padrao_execucao=None, justificativa_padrao=None) quando:
-1. tipo_bloqueio="fora_de_escopo": assunto alheio a direitos ou benefícios sociais (ex.: receitas de culinária, futebol/esportes, piadas, programação, previsão do tempo, filmes, curiosidades gerais).
-2. tipo_bloqueio="operacao_proibida_cpf_cadastro": pedido de OPERAÇÃO vedada: consultar CPF ou CadÚnico, verificar se o benefício individual foi aprovado/está ativo, fazer/atualizar cadastro pelo chat ou conceder benefício (mesmo que cite programa social). Perguntas apenas informativas ("como me inscrevo no CadÚnico?") são VÁLIDAS.
+PARTE A1 — Detecção de Mensagem Adicional de Apoio/Proteção (categoria_encaminhamento):
+Avalie independentemente de eh_valido:
+- "autoexterminio_e_codigo_penal": coocorrência na mesma mensagem de risco real de autoextermínio/autolesão E elementos que ferem o Código Penal.
+- "autoexterminio": ideação suicida, intenção de tirar a própria vida, automutilação/autolesão, pedido de métodos ou crise aguda ("quero morrer", "não aguento mais viver").
+- "codigo_penal": elementos que ferem o Código Penal brasileiro — vítimas/relatos de violência doméstica/familiar, agressão física, ameaça, abuso/exploração sexual ou de vulneráveis, cárcere privado, trabalho análogo à escravidão, furto/roubo/extorsão, retenção criminosa de documentos/cartão de benefício, OU pedidos/relatos de prática de ilícito/fraude documental.
+- None: quando não houver risco real de autoextermínio nem matéria penal.
 
-PARTE B — Seleção do Padrão de Execução (SOMENTE quando eh_valido=True):
+PARTE A2 — Validação de Escopo para Orientação de Benefícios (eh_valido e tipo_bloqueio):
+REGRA DE RESPOSTA DUPLA (BENEFÍCIOS + APOIO):
+- Marque eh_valido=True (tipo_bloqueio=None) SEMPRE que a mensagem contiver situação socioeconômica, familiar, vulnerabilidade, saúde, deficiência, moradia, educação, trabalho/desemprego/renda, alimentação, zona rural OU dúvida informativa sobre programas sociais — MESMO QUE categoria_encaminhamento esteja preenchida com "autoexterminio", "codigo_penal" ou "autoexterminio_e_codigo_penal" (ex.: "sou mãe solteira, tenho 3 filhos, desempregada, não aguento mais quero morrer" -> eh_valido=True E categoria_encaminhamento="autoexterminio"; "meu marido me bate, saí de casa sem renda com meus filhos" -> eh_valido=True E categoria_encaminhamento="codigo_penal").
+- Marque eh_valido=False (padrao_execucao=None, justificativa_padrao=None) APENAS quando:
+  1. tipo_bloqueio="sem_escopo_socioeconomico": houver apenas crise de autoextermínio ou relato/ocorrência criminal isolada SEM qualquer contexto socioeconômico ou dúvida de benefício, OU quando a mensagem for um pedido de instrução para cometer fraude/ilícito penal (ex.: "como falsificar comprovante ou esconder salário para fraudar benefício").
+  2. tipo_bloqueio="operacao_proibida_cpf_cadastro": pedido operacional vedado por P02 (consultar CPF/CadÚnico, verificar aprovação individual, fazer cadastro pelo chat). Perguntas informativas ("como me inscrevo no CadÚnico?") são VÁLIDAS.
+  3. tipo_bloqueio="fora_de_escopo": assunto alheio a direitos/benefícios sociais sem crise nem crime (receitas, futebol/esportes, piadas, programação, filmes, curiosidades).
+
+PARTE B — Seleção do Padrão de Execução (OBRIGATÓRIO quando eh_valido=True):
 Escolha exatamente um valor para padrao_execucao e explique em justificativa_padrao (uma frase curta):
 1. "padrao":
-   - Dúvidas diretas sobre um único benefício ou tema específico (ex.: ensino médio/Pé-de-Meia, conta de luz, auxílio gás, remédio gratuito); OU
-   - Relatos socioeconômicos simples e lineares com poucas variáveis (ex.: desempregada com filhos pedindo orientação básica).
+   - Dúvidas diretas sobre um único benefício ou tema específico; OU
+   - Relatos socioeconômicos simples e lineares com poucas variáveis (ex.: mãe solo desempregada com filhos pedindo orientação básica).
 2. "rewoo":
-   - Relatos multifacetados combinando 3 ou mais vulnerabilidades/necessidades distintas no mesmo pedido (ex.: moradia na roça/zona rural + seca/falta de água + filhos na escola + idoso/pessoa com deficiência + conta de luz/gás/moradia); OU
-   - Perguntas amplas/comparativas que exigem decompor a busca em várias frentes independentes no banco de programas antes de consolidar a orientação.
+   - Relatos multifacetados combinando 3 ou mais vulnerabilidades/necessidades distintas no mesmo pedido (ex.: zona rural + seca + filhos na escola + idoso/pessoa com deficiência + luz/gás/moradia); OU
+   - Perguntas amplas/comparativas que exigem decompor a busca em várias frentes independentes.
 3. "reflexion":
-   - Casos limítrofes, ambíguos ou com potenciais conflitos de regras e acumulação de benefícios (ex.: acumular BPC com Bolsa Família, renda no limite, vínculo formal parcial/MEI x benefício); OU
-   - Pedidos com exigência explícita de detalhamento legal/normativo (citação exata de leis, decretos, portarias de 2024–2026, regras de biometria, critérios exatos ou lacunas normativas) onde uma auditoria crítica de ancoragem documental (RIA02) evita alucinação.
+   - Casos limítrofes, ambíguos ou com potenciais conflitos de regras e acumulação de benefícios (ex.: acumular BPC com Bolsa Família, renda no limite, MEI x benefício); OU
+   - Pedidos com exigência explícita de detalhamento legal/normativo (leis, decretos, portarias de 2024–2026).
 
 Escreva motivo e justificativa_padrao de forma objetiva, em português."""
+
+NOTA_ORQUESTRACAO_APOIO_SEPARADO = (
+    "\n\nNOTA DE ORQUESTRAÇÃO DO SISTEMA: Uma mensagem institucional separada com os canais oficiais de "
+    "emergência, saúde mental e proteção legal (ex.: 188, 192, 190, 180, CREAS, Defensoria) já será exibida "
+    "junto a esta resposta. Mantenha tom especialmente acolhedor e concentre este texto exclusivamente em "
+    "orientar sobre os programas e benefícios sociais aplicáveis à situação socioeconômica e os próximos "
+    "passos práticos no CRAS/órgão responsável."
+)
+
+SEPARADOR_MENSAGEM_APOIO = "\n\n---\n\n### Mensagem adicional de apoio e canais oficiais de ajuda\n\n"
+
+
+def _combinar_categorias_apoio(
+    *categorias: CategoriaEncaminhamentoAjuda | None,
+) -> CategoriaEncaminhamentoAjuda | None:
+    """Consolida sinais determinísticos e do LLM preservando coocorrência quando ambos os eixos aparecem."""
+    tem_auto = any(c in ("autoexterminio", "autoexterminio_e_codigo_penal") for c in categorias if c)
+    tem_penal = any(c in ("codigo_penal", "autoexterminio_e_codigo_penal") for c in categorias if c)
+    if tem_auto and tem_penal:
+        return "autoexterminio_e_codigo_penal"
+    if tem_auto:
+        return "autoexterminio"
+    if tem_penal:
+        return "codigo_penal"
+    return None
+
+
+def _montar_resposta_encaminhamento(categoria: CategoriaEncaminhamentoAjuda, mensagem_usuario: str) -> str:
+    """Retorna a mensagem institucional acolhedora da categoria e anexa aviso de dados se houver CPF/P02."""
+    texto_base = MENSAGENS_ENCAMINHAMENTO_AJUDA[categoria]
+    if contem_dados_ou_pedido_p02(mensagem_usuario):
+        return f"{texto_base}\n\n{AVISO_PRIVACIDADE_DADOS_SENSIVEIS}"
+    return texto_base
+
+
+def _resposta_estado_encaminhamento(
+    state: EstadoSistema,
+    categoria: CategoriaEncaminhamentoAjuda,
+    motivo: str,
+    modelo_registrado: str,
+) -> dict:
+    """Constrói atualização de EstadoSistema quando há apenas encaminhamento de ajuda sem fluxo de benefícios."""
+    mensagem = state["mensagem_usuario"]
+    apoio = _montar_resposta_encaminhamento(categoria, mensagem)
+    return {
+        "dentro_do_escopo": False,
+        "motivo_rejeicao": motivo,
+        "categoria_encaminhamento": categoria,
+        "padrao_execucao": None,
+        "justificativa_padrao": None,
+        "modelos_utilizados": _registrar_modelo(state, "guardrail", modelo_registrado),
+        "resposta_beneficios": None,
+        "mensagem_apoio": apoio,
+        "status_api": STATUS_ENCAMINHAMENTO_AJUDA,
+        "resposta_final": apoio,
+    }
+
+
+def _eh_excecao_seguranca_llm(erro: Exception) -> bool:
+    """Detecta falhas decorrentes de filtro de segurança ou resposta bloqueada/vazia no provedor LLM."""
+    msg = str(erro).lower()
+    sinais_seguranca = (
+        "safety",
+        "harm_category",
+        "prohibited_content",
+        "dangerous_content",
+        "blocklist",
+        "blocked",
+        "finish_reason",
+        "saída estruturada vazia",
+        "saida estruturada vazia",
+    )
+    return any(sinal in msg for sinal in sinais_seguranca)
+
+
+def _motivo_indica_pedido_ilicito(motivo: str) -> bool:
+    """Verifica se a justificativa do LLM aponta tentativa/pedido de fraude ou ato ilícito."""
+    m = (motivo or "").lower()
+    return any(t in m for t in ("fraud", "falsific", "ilícit", "ilicit", "burlar", "omitir renda", "esconder sal"))
+
+
+def _invocar_estruturado_resiliente(
+    state: EstadoSistema,
+    agente: str,
+    schema: type,
+    prompt_sistema: str,
+    prompt_usuario: str,
+):
+    """Invoca saída estruturada e, em caso de bloqueio SAFETY em relato já acolhido, tenta texto neutralizado."""
+    try:
+        return invocar_estruturado(agente, schema, prompt_sistema, prompt_usuario)
+    except Exception as erro:
+        if state.get("categoria_encaminhamento") and _eh_excecao_seguranca_llm(erro):
+            original = state["mensagem_usuario"]
+            sanitizada = neutralizar_trechos_criticos_para_extracao(original)
+            if sanitizada != original and original in prompt_usuario:
+                return invocar_estruturado(
+                    agente,
+                    schema,
+                    prompt_sistema,
+                    prompt_usuario.replace(original, sanitizada),
+                )
+        raise
+
+
+def _invocar_texto_resiliente(
+    state: EstadoSistema,
+    agente: str,
+    prompt_sistema: str,
+    prompt_usuario: str,
+) -> tuple[str, str]:
+    """Invoca geração textual e, em caso de bloqueio SAFETY em relato já acolhido, tenta texto neutralizado."""
+    try:
+        return invocar_texto(agente, prompt_sistema, prompt_usuario)
+    except Exception as erro:
+        if state.get("categoria_encaminhamento") and _eh_excecao_seguranca_llm(erro):
+            original = state["mensagem_usuario"]
+            sanitizada = neutralizar_trechos_criticos_para_extracao(original)
+            if sanitizada != original and original in prompt_usuario:
+                return invocar_texto(
+                    agente,
+                    prompt_sistema,
+                    prompt_usuario.replace(original, sanitizada),
+                )
+        raise
 
 
 def agente_guardrail(state: EstadoSistema) -> dict:
     mensagem = state["mensagem_usuario"]
+    categoria_det = detectar_situacao_critica_deterministica(mensagem)
+    indicio_sensivel = inferir_categoria_sensivel_fallback(mensagem)
+    tem_violacao_p02 = violacao_operacional_p02(mensagem)
+    tem_pedido_ilicito = eh_pedido_ilicito_explicito(mensagem)
+    tem_contexto_socio = possui_contexto_socioeconomico(mensagem)
+
+    # 1. Pedido explícito de prática de fraude/ilícito: nunca aciona orientação de como obter benefício
+    if tem_pedido_ilicito:
+        cat_ilicito = _combinar_categorias_apoio(categoria_det, "codigo_penal") or "codigo_penal"
+        return _resposta_estado_encaminhamento(
+            state=state,
+            categoria=cat_ilicito,
+            motivo=_MOTIVOS_DETERMINISTICOS_AJUDA[cat_ilicito],
+            modelo_registrado="regra_deterministica_seguranca",
+        )
+
+    # 2. Pedido operacional P02 (consulta CPF/CadÚnico): ajuda prevalece se houver crise/crime explícito
+    if tem_violacao_p02:
+        if categoria_det is not None:
+            return _resposta_estado_encaminhamento(
+                state=state,
+                categoria=categoria_det,
+                motivo=_MOTIVOS_DETERMINISTICOS_AJUDA[categoria_det],
+                modelo_registrado="regra_deterministica_seguranca",
+            )
+        if indicio_sensivel is None:
+            return {
+                "dentro_do_escopo": False,
+                "motivo_rejeicao": "Pedido de consulta de CPF/CadÚnico, aprovação ou cadastro (vedado por P02).",
+                "categoria_encaminhamento": None,
+                "padrao_execucao": None,
+                "justificativa_padrao": None,
+                "modelos_utilizados": _registrar_modelo(state, "guardrail", "regra_deterministica_p02"),
+                "resposta_beneficios": None,
+                "mensagem_apoio": None,
+                "status_api": STATUS_BLOQUEADO,
+                "resposta_final": MENSAGEM_OPERACAO_PROIBIDA,
+            }
+
+    # 3. Crise/crime explícito SEM qualquer contexto socioeconômico: encaminha imediatamente à ajuda oficial
+    if categoria_det is not None and not tem_contexto_socio:
+        return _resposta_estado_encaminhamento(
+            state=state,
+            categoria=categoria_det,
+            motivo=_MOTIVOS_DETERMINISTICOS_AJUDA[categoria_det],
+            modelo_registrado="regra_deterministica_seguranca",
+        )
+
+    # 4. Classificação estruturada pelo LLM (avalia escopo, padrão e sinais sutis de apoio em paralelo)
     try:
-        if violacao_operacional_p02(mensagem):
-            validacao = ValidacaoEscopo(
-                eh_valido=False,
-                motivo="Pedido de consulta de CPF/CadÚnico, aprovação ou cadastro (vedado por P02).",
-                tipo_bloqueio="operacao_proibida_cpf_cadastro",
-                padrao_execucao=None,
-                justificativa_padrao=None,
+        validacao, modelo_usado = invocar_estruturado(
+            "guardrail", ValidacaoEscopo, PROMPT_GUARDRAIL, f"Mensagem do cidadão:\n{mensagem}"
+        )
+        modelos = _registrar_modelo(state, "guardrail", modelo_usado)
+    except Exception as erro:  # fail-closed com salvaguarda para relatos sensíveis
+        cat_fallback = _combinar_categorias_apoio(categoria_det, indicio_sensivel)
+        if cat_fallback is not None and (categoria_det is not None or _eh_excecao_seguranca_llm(erro)):
+            if tem_contexto_socio and not tem_violacao_p02:
+                return {
+                    "dentro_do_escopo": True,
+                    "motivo_rejeicao": _MOTIVOS_DETERMINISTICOS_AJUDA[cat_fallback],
+                    "categoria_encaminhamento": cat_fallback,
+                    "padrao_execucao": "padrao",
+                    "justificativa_padrao": "Fluxo padrão ativado em contingência para preservar orientação de benefícios.",
+                    "modelos_utilizados": _registrar_modelo(state, "guardrail", "fallback_deterministico_seguranca"),
+                    "mensagem_apoio": _montar_resposta_encaminhamento(cat_fallback, mensagem),
+                    "status_api": STATUS_EM_PROCESSAMENTO,
+                }
+            return _resposta_estado_encaminhamento(
+                state=state,
+                categoria=cat_fallback,
+                motivo=_MOTIVOS_DETERMINISTICOS_AJUDA[cat_fallback],
+                modelo_registrado="fallback_deterministico_seguranca",
             )
-            modelos = _registrar_modelo(state, "guardrail", "regra_deterministica_p02")
-        else:
-            validacao, modelo_usado = invocar_estruturado(
-                "guardrail", ValidacaoEscopo, PROMPT_GUARDRAIL, f"Mensagem do cidadão:\n{mensagem}"
-            )
-            modelos = _registrar_modelo(state, "guardrail", modelo_usado)
-    except Exception as erro:  # fail-closed
         return {
             "dentro_do_escopo": False,
+            "categoria_encaminhamento": None,
             "padrao_execucao": None,
             "justificativa_padrao": None,
+            "resposta_beneficios": None,
+            "mensagem_apoio": None,
             **_erro_api("guardrail", erro),
         }
 
-    if validacao.eh_valido:
+    cat_llm: CategoriaEncaminhamentoAjuda | None = validacao.categoria_encaminhamento
+    if cat_llm is None and validacao.tipo_bloqueio in CATEGORIAS_ENCAMINHAMENTO_AJUDA:
+        cat_llm = validacao.tipo_bloqueio  # retrocompatibilidade caso o modelo preencha em tipo_bloqueio
+    categoria_final = _combinar_categorias_apoio(categoria_det, cat_llm)
+
+    if tem_violacao_p02:
+        if categoria_final is not None:
+            return _resposta_estado_encaminhamento(
+                state=state,
+                categoria=categoria_final,
+                motivo=validacao.motivo,
+                modelo_registrado=modelo_usado,
+            )
+        return {
+            "dentro_do_escopo": False,
+            "motivo_rejeicao": "Pedido de consulta de CPF/CadÚnico, aprovação ou cadastro (vedado por P02).",
+            "categoria_encaminhamento": None,
+            "padrao_execucao": None,
+            "justificativa_padrao": None,
+            "modelos_utilizados": modelos,
+            "resposta_beneficios": None,
+            "mensagem_apoio": None,
+            "status_api": STATUS_BLOQUEADO,
+            "resposta_final": MENSAGEM_OPERACAO_PROIBIDA,
+        }
+
+    resgate_socioeconomico = (
+        categoria_final is not None
+        and tem_contexto_socio
+        and validacao.tipo_bloqueio != "fora_de_escopo"
+        and not _motivo_indica_pedido_ilicito(validacao.motivo)
+    )
+
+    if validacao.eh_valido or resgate_socioeconomico:
         padrao = validacao.padrao_execucao or "padrao"
         justificativa = validacao.justificativa_padrao or validacao.motivo
+        apoio = _montar_resposta_encaminhamento(categoria_final, mensagem) if categoria_final else None
         return {
             "dentro_do_escopo": True,
-            "motivo_rejeicao": None,
+            "motivo_rejeicao": validacao.motivo if categoria_final else None,
+            "categoria_encaminhamento": categoria_final,
             "padrao_execucao": padrao,
             "justificativa_padrao": justificativa,
             "modelos_utilizados": modelos,
+            "mensagem_apoio": apoio,
             "status_api": STATUS_EM_PROCESSAMENTO,
         }
+
+    if categoria_final is not None:
+        return _resposta_estado_encaminhamento(
+            state=state,
+            categoria=categoria_final,
+            motivo=validacao.motivo,
+            modelo_registrado=modelo_usado,
+        )
 
     proibida = validacao.tipo_bloqueio == "operacao_proibida_cpf_cadastro"
     return {
         "dentro_do_escopo": False,
         "motivo_rejeicao": validacao.motivo,
+        "categoria_encaminhamento": None,
         "padrao_execucao": None,
         "justificativa_padrao": None,
         "modelos_utilizados": modelos,
+        "resposta_beneficios": None,
+        "mensagem_apoio": None,
         "status_api": STATUS_BLOQUEADO,
         "resposta_final": MENSAGEM_OPERACAO_PROIBIDA if proibida else MENSAGEM_FORA_DE_ESCOPO,
     }
@@ -213,7 +548,8 @@ PROMPT_EXTRATOR = f"""Você é um assistente social técnico que lê o relato li
 
 def agente_extrator_perfil(state: EstadoSistema) -> dict:
     try:
-        perfil, modelo_usado = invocar_estruturado(
+        perfil, modelo_usado = _invocar_estruturado_resiliente(
+            state,
             "extrator_perfil",
             PerfilSocioeconomico,
             PROMPT_EXTRATOR,
@@ -264,8 +600,8 @@ def agente_analista_elegibilidade(state: EstadoSistema) -> dict:
         + f"\n\nRELATO ORIGINAL DO CIDADÃO:\n{state['mensagem_usuario']}"
     )
     try:
-        analise, modelo_usado = invocar_estruturado(
-            "analista_elegibilidade", AnaliseElegibilidade, PROMPT_ANALISTA, prompt_usuario
+        analise, modelo_usado = _invocar_estruturado_resiliente(
+            state, "analista_elegibilidade", AnaliseElegibilidade, PROMPT_ANALISTA, prompt_usuario
         )
     except Exception as erro:
         return _erro_api("analista_elegibilidade", erro)
@@ -281,6 +617,7 @@ PROMPT_COMUNICADOR = f"""Você é o Comunicador do Assistente Virtual Tira-Dúvi
 
 
 def agente_comunicador(state: EstadoSistema) -> dict:
+    nota_apoio = NOTA_ORQUESTRACAO_APOIO_SEPARADO if state.get("categoria_encaminhamento") else ""
     prompt_usuario = (
         f"MENSAGEM DO CIDADÃO:\n{state['mensagem_usuario']}\n\n"
         "PERFIL EXTRAÍDO:\n"
@@ -289,9 +626,10 @@ def agente_comunicador(state: EstadoSistema) -> dict:
         + json.dumps(state.get("analise_elegibilidade") or {}, ensure_ascii=False, indent=2)
         + "\n\nDOCUMENTOS OFICIAIS RECUPERADOS:\n\n"
         + ("\n\n".join(state.get("documentos_encontrados") or []) or "Nenhum documento recuperado.")
+        + nota_apoio
     )
     try:
-        texto, modelo_usado = invocar_texto("comunicador", PROMPT_COMUNICADOR, prompt_usuario)
+        texto, modelo_usado = _invocar_texto_resiliente(state, "comunicador", PROMPT_COMUNICADOR, prompt_usuario)
     except Exception as erro:
         return _erro_api("comunicador", erro)
 
@@ -321,7 +659,8 @@ Regras do Plano de Evidências ReWOO:
 
 def agente_rewoo_planner(state: EstadoSistema) -> dict:
     try:
-        plano, modelo_usado = invocar_estruturado(
+        plano, modelo_usado = _invocar_estruturado_resiliente(
+            state,
             "rewoo_planner",
             PlanoReWOO,
             PROMPT_REWOO_PLANNER,
@@ -404,6 +743,7 @@ def agente_rewoo_solver(state: EstadoSistema) -> dict:
         state.get("plano_rewoo") or [],
         state.get("evidencias_rewoo") or {},
     )
+    nota_apoio = NOTA_ORQUESTRACAO_APOIO_SEPARADO if state.get("categoria_encaminhamento") else ""
     prompt_analise = (
         f"RELATO ORIGINAL DO CIDADÃO:\n{state['mensagem_usuario']}\n\n"
         "PERFIL SOCIOECONÔMICO EXTRAÍDO:\n"
@@ -413,8 +753,8 @@ def agente_rewoo_solver(state: EstadoSistema) -> dict:
         + "\n\n".join(documentos)
     )
     try:
-        analise, modelo_analise = invocar_estruturado(
-            "rewoo_solver", AnaliseElegibilidade, PROMPT_REWOO_SOLVER_ANALISE, prompt_analise
+        analise, modelo_analise = _invocar_estruturado_resiliente(
+            state, "rewoo_solver", AnaliseElegibilidade, PROMPT_REWOO_SOLVER_ANALISE, prompt_analise
         )
         analise_dump = analise.model_dump()
         prompt_sintese = (
@@ -426,8 +766,11 @@ def agente_rewoo_solver(state: EstadoSistema) -> dict:
             + json.dumps(analise_dump, ensure_ascii=False, indent=2)
             + "\n\nDOCUMENTOS OFICIAIS RECUPERADOS:\n\n"
             + "\n\n".join(documentos)
+            + nota_apoio
         )
-        texto_sintese, modelo_sintese = invocar_texto("comunicador", PROMPT_COMUNICADOR, prompt_sintese)
+        texto_sintese, modelo_sintese = _invocar_texto_resiliente(
+            state, "comunicador", PROMPT_COMUNICADOR, prompt_sintese
+        )
     except Exception as erro:
         return _erro_api("rewoo_solver", erro)
 
@@ -468,8 +811,8 @@ def agente_reflexion_critico(state: EstadoSistema) -> dict:
         + f"\n\n---\nRESPOSTA AO CIDADÃO ATUAL (Iteração {iteracao}):\n{state.get('resposta_final', '')}"
     )
     try:
-        critica, modelo_usado = invocar_estruturado(
-            "reflexion_critico", AvaliacaoCriticaReflexion, PROMPT_REFLEXION_CRITICO, prompt_usuario
+        critica, modelo_usado = _invocar_estruturado_resiliente(
+            state, "reflexion_critico", AvaliacaoCriticaReflexion, PROMPT_REFLEXION_CRITICO, prompt_usuario
         )
     except Exception as erro:
         return _erro_api("reflexion_critico", erro)
@@ -501,6 +844,7 @@ Reescreva a orientação ao cidadão aplicando integralmente TODAS as correçõe
 def agente_reflexion_revisor(state: EstadoSistema) -> dict:
     nova_iteracao = int(state.get("iteracao_reflexion") or 0) + 1
     critica = state.get("critica_reflexion") or {}
+    nota_apoio = NOTA_ORQUESTRACAO_APOIO_SEPARADO if state.get("categoria_encaminhamento") else ""
     contexto_base = (
         f"RELATO ORIGINAL DO CIDADÃO:\n{state['mensagem_usuario']}\n\n"
         "PERFIL SOCIOECONÔMICO EXTRAÍDO:\n"
@@ -514,17 +858,18 @@ def agente_reflexion_revisor(state: EstadoSistema) -> dict:
         + json.dumps(critica, ensure_ascii=False, indent=2)
     )
     try:
-        analise_rev, mod_analise = invocar_estruturado(
-            "reflexion_revisor", AnaliseElegibilidade, PROMPT_REFLEXION_REVISOR_ANALISE, contexto_base
+        analise_rev, mod_analise = _invocar_estruturado_resiliente(
+            state, "reflexion_revisor", AnaliseElegibilidade, PROMPT_REFLEXION_REVISOR_ANALISE, contexto_base
         )
         analise_dump = analise_rev.model_dump()
         prompt_texto = (
             contexto_base
             + "\n\n---\nNOVA ANÁLISE DE ELEGIBILIDADE JÁ CORRIGIDA:\n"
             + json.dumps(analise_dump, ensure_ascii=False, indent=2)
+            + nota_apoio
         )
-        texto_rev, mod_texto = invocar_texto(
-            "reflexion_revisor", PROMPT_REFLEXION_REVISOR_TEXTO, prompt_texto
+        texto_rev, mod_texto = _invocar_texto_resiliente(
+            state, "reflexion_revisor", PROMPT_REFLEXION_REVISOR_TEXTO, prompt_texto
         )
     except Exception as erro:
         return _erro_api("reflexion_revisor", erro)
@@ -537,4 +882,53 @@ def agente_reflexion_revisor(state: EstadoSistema) -> dict:
         "resposta_final": _garantir_aviso_institucional(texto_rev),
         "modelos_utilizados": _registrar_modelo(state, chave_agente, modelo_reg),
         "status_api": STATUS_SUCESSO,
+    }
+
+
+def consolidar_encaminhamento_ajuda(state: EstadoSistema) -> dict:
+    """Consolida resposta_beneficios, mensagem_apoio e resposta_final antes do encerramento em END."""
+    categoria = state.get("categoria_encaminhamento")
+    dentro_escopo = bool(state.get("dentro_do_escopo"))
+    status_atual = state.get("status_api")
+    resposta_atual = (state.get("resposta_final") or "").strip()
+
+    if not categoria:
+        if dentro_escopo and status_atual == STATUS_SUCESSO:
+            return {
+                "resposta_beneficios": resposta_atual,
+                "mensagem_apoio": None,
+            }
+        return {
+            "resposta_beneficios": None,
+            "mensagem_apoio": None,
+        }
+
+    apoio = state.get("mensagem_apoio") or _montar_resposta_encaminhamento(categoria, state["mensagem_usuario"])
+
+    if not dentro_escopo:
+        return {
+            "resposta_beneficios": None,
+            "mensagem_apoio": apoio,
+            "resposta_final": apoio,
+            "status_api": STATUS_ENCAMINHAMENTO_AJUDA,
+        }
+
+    if status_atual == STATUS_SUCESSO and resposta_atual:
+        combinada = (
+            f"{resposta_atual}{SEPARADOR_MENSAGEM_APOIO}{apoio}"
+            if apoio not in resposta_atual
+            else resposta_atual
+        )
+        return {
+            "resposta_beneficios": resposta_atual,
+            "mensagem_apoio": apoio,
+            "resposta_final": combinada,
+            "status_api": STATUS_SUCESSO_COM_ENCAMINHAMENTO_AJUDA,
+        }
+
+    combinada_erro = f"{resposta_atual}{SEPARADOR_MENSAGEM_APOIO}{apoio}" if resposta_atual else apoio
+    return {
+        "resposta_beneficios": None,
+        "mensagem_apoio": apoio,
+        "resposta_final": combinada_erro,
     }
