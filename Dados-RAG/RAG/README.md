@@ -1,78 +1,67 @@
-# RAG do Assistente Virtual
+# Geração AUmentada por Recuperação - RAG x LLM
 
-Este diretório contém o pipeline usado pela API: <br>
-Validação das fontes, divisão em trechos, embeddings, recuperação com ChromaDB, respostas determinísticas, avaliação RAGAS (opcional) e testes.
+Este diretório contém a base de recuperação de informações do assistente e os
+scripts usados para preparar, consultar e avaliar essa base. O relatório da
+comparação da Semana 3 está em
+[`Documentos/Semana03-Relatorio-LLM-RAG.pdf`](../../Documentos/Semana03-Relatorio-LLM-RAG.pdf).
 
-## Arquitetura de produção (T5)
+## Arquitetura atual
 
-1. `programas_sociais_legislacao_links_oficiais.csv` fornece os **dados estruturados dos 42 programas**. As fichas em `base/` são geradas pelo CSV, por sua vez os documentos em `fontes/` preservam texto legislativo oficial baixado.
-2. `dataset.py` valida colunas, registros e URLs, cria seções por programa e trechos da legislação. Os metadados mantêm nome, órgão informado, público, critérios, leis e fonte juntos.
-3. `ingestao.py` envia os trechos em lotes ao Ollama para obter embeddings com `bge-m3` e persiste-os no ChromaDB com distância cosseno.
-4. A busca expande expressões populares, consulta a versão atual do corpus e deduplica resultados por programa. O limiar `RAG_MIN_SIMILARITY` (padrão `0.532`) descarta candidatos de baixa similaridade.
-5. `compose_answer()` monta a resposta com campos revisados da base: primeiro programa completo, referências numéricas e, quando houver, apenas os nomes dos próximos resultados. **Não há classificação nem geração de resposta por LLM.**
-6. A API entrega resposta e referências. O resultado não confirma elegibilidade.
+O fluxo atual não usa uma LLM generativa para redigir as respostas:
 
-O limiar **0.532** foi medido no corpus menor usado no relatório da Semana 3. O corpus atual inclui textos legislativos adicionais, valide ou recalibre o limiar com perguntas de validação separadas antes de uso real.
+1. As perguntas são expandidas com termos relacionados.
+2. O Ollama gera embeddings com o modelo `bge-m3`.
+3. O ChromaDB recupera trechos da base de programas e de fontes oficiais.
+4. Resultados abaixo do limiar de similaridade são descartados.
+5. A resposta é montada a partir dos dados recuperados, com indicação das fontes.
+   Sem contexto suficiente, o sistema se abstém de responder.
 
-```mermaid
-flowchart LR
-    CSV["CSV curado + fontes oficiais"] --> Chunks["Validação e trechos contextualizados"]
-    Chunks --> Embed["Ollama: bge-m3"]
-    Embed --> Store[("ChromaDB: vetor-v3")]
-    Question["Pergunta"] --> Expand["Expansões populares"]
-    Expand --> Query["Embedding da pergunta: bge-m3"]
-    Store --> Search["Busca cosseno + limiar 0.532"]
-    Query --> Search
-    Search --> Template["Resposta determinística + citações"]
-    Template --> API["FastAPI"]
-```
+O limiar padrão é `0.532` e pode ser alterado pela variável
+`RAG_MIN_SIMILARITY`. A base vetorial é derivada dos dados e pode ser recriada
+com a ingestão.
 
-## RAGAS
+## Preparar a base
 
-O RAGAS avalia respostas do fluxo real, mas não gera a resposta do produto. Por padrão, o juiz é `qwen2.5:3b` no endpoint OpenAI-compatível local do Ollama. A avaliação não exige chave OpenAI nem gera custo de API. <br>
-Configure `OLLAMA_EVALUATION_MODEL` para outro modelo local.
-
-Instalação e execução (opcional):
+Execute os comandos na raiz do repositório, em um PowerShell com o ambiente
+Python do projeto ativado:
 
 ```powershell
-python -m pip install -r .\Dados-RAG\RAG\requirements-avaliacao.txt
-ollama pull qwen2.5:3b
-python .\Dados-RAG\RAG\avaliar_ragas.py todos --limite 2
-python .\Dados-RAG\RAG\avaliar_ragas.py todos
+ollama pull bge-m3
+python .\Dados-RAG\RAG\baixar_fontes.py
+python .\Dados-RAG\RAG\ingestao.py
 ```
 
-A avaliação coleta as **27 perguntas** versionadas em `avaliacao/casos.jsonl`, incluindo **seis perguntas fora do escopo**. **Faithfulness** e **Context Utilization** comparam a resposta determinística aos contextos recuperados, **Context Precision** e **Context Recall** usam também as referências do arquivo de casos. Essas quatro métricas usam um **juiz LLM local** e as notas dependem da qualidade desse modelo e da referência.
+`baixar_fontes.py` obtém os documentos legislativos das fontes oficiais. A
+ingestão lê a base CSV, prepara os trechos, gera os embeddings, atualiza o
+ChromaDB e grava fichas Markdown em `base/`.
 
-As **métricas RAGAS** de resposta/contexto são calculadas somente nos **casos em escopo**. O juiz `qwen2.5:3b` interpretou incorretamente um teste de abstenção, então aderência ao escopo não é apresentada como uma nota subjetiva: `acerto_top_1`, `acerto_top_k`, `resposta_com_contexto_em_escopo`, `abstencao_correta` e `decisao_escopo_correta` são verificações objetivas baseadas no programa esperado e no escopo declarado no conjunto. Esses indicadores não são métricas RAGAS. As referências dos casos foram redigidas a partir da base local, trate Context Precision/Recall como exploratórias até revisar essas referências. `acerto_top_k` mede se o programa esperado aparece nos resultados, não se a resposta que destaca o primeiro resultado está correta.
+## Avaliação
 
-Para medir ranking da recuperação e abstenção sem juiz LLM:
+Para calcular métricas objetivas da recuperação:
 
 ```powershell
 python .\Dados-RAG\RAG\avaliar.py
 ```
 
-## Testes locais
+Para rodar os testes automatizados do back-end e do RAG:
 
 ```powershell
 python .\Dados-RAG\RAG\testes-automatizados\executar_testes.py
 ```
 
-O comando roda os testes unitários do back-end e do RAG, sem precisar do Ollama. Use `--com-ragas` para acrescentar a avaliação local integrada, veja `testes-automatizados/COMO_EXECUTAR.txt`.
+Há também uma avaliação opcional com RAGAS e um juiz local. Consulte
+[`testes-automatizados/COMO_EXECUTAR.md`](testes-automatizados/COMO_EXECUTAR.md)
+para instalar as dependências extras e executar a avaliação.
 
-## Atualização do índice
+O nome `experimentos.py` é mantido por compatibilidade e encaminha para a
+avaliação RAGAS; ele não executa mais a comparação histórica T1–T5 da Semana 3.
 
-Depois de atualizar o CSV ou as fontes oficiais:
+## Arquivos principais
 
-```powershell
-python .\Dados-RAG\RAG\baixar_fontes.py
-python .\Dados-RAG\RAG\ingestao.py
-```
-
-O **banco vetorial** é derivado e fica por padrão em `%LOCALAPPDATA%\AssistenteVirtualDF\vetor-v3` no Windows. `VECTOR_DB_PATH`, `OLLAMA_URL`, `OLLAMA_EMBEDDING_MODEL` e `RAG_MIN_SIMILARITY` podem ser configurados por variáveis de ambiente.
-
-## Limitações
-
-- Há **42 programas federais**, o conjunto não representa todos os benefícios do DF.
-- Critérios ausentes ou parciais permanecem explicitamente incompletos.
-- A similaridade do embedding não prova que a pergunta é social nem que o resultado é elegível. Uma recusa por limiar pode ser incorreta.
-- As métricas da Semana 3 são resultados experimentais no conjunto testado, não garantia de precisão em produção.
+- `dataset.py`: Lê a base de programas e prepara os trechos e metadados.
+- `fontes.py` e `baixar_fontes.py`: Obtêm e leem documentos oficiais.
+- `ingestao.py`: Gera embeddings e atualiza o índice vetorial.
+- `rag.py`: Implementa a busca, o limiar de similaridade e a resposta.
+- `avaliar.py`: Mede a qualidade da recuperação.
+- `avaliar_ragas.py`: Executa a avaliação RAGAS opcional.
+- `testes-automatizados/`: Testes do RAG e instruções para executá-los.
