@@ -3,11 +3,51 @@ from pydantic import BaseModel, Field
 
 PadraoExecucao = Literal["padrao", "rewoo", "reflexion"]
 
+STATUS_INICIADO = "iniciado"
+STATUS_EM_PROCESSAMENTO = "em_processamento"
+STATUS_SUCESSO = "sucesso"
+STATUS_SUCESSO_COM_ENCAMINHAMENTO_AJUDA = "sucesso_com_encaminhamento_ajuda"
+STATUS_BLOQUEADO = "bloqueado_guardrail"
+STATUS_ENCAMINHAMENTO_AJUDA = "encaminhamento_ajuda"
+STATUS_ERRO_API = "erro_api"
+
+StatusApi = Literal[
+    "iniciado",
+    "em_processamento",
+    "sucesso",
+    "sucesso_com_encaminhamento_ajuda",
+    "bloqueado_guardrail",
+    "encaminhamento_ajuda",
+    "erro_api",
+]
+
+CategoriaEncaminhamentoAjuda = Literal[
+    "autoexterminio",
+    "codigo_penal",
+    "autoexterminio_e_codigo_penal",
+]
+
+TipoIntervencaoGuardrail = Literal[
+    "fora_de_escopo",
+    "operacao_proibida_cpf_cadastro",
+    "sem_escopo_socioeconomico",
+    "autoexterminio",
+    "codigo_penal",
+    "autoexterminio_e_codigo_penal",
+]
+
+CATEGORIAS_ENCAMINHAMENTO_AJUDA: tuple[CategoriaEncaminhamentoAjuda, ...] = (
+    "autoexterminio",
+    "codigo_penal",
+    "autoexterminio_e_codigo_penal",
+)
+
 
 class EstadoSistema(TypedDict):
     mensagem_usuario: str
     dentro_do_escopo: bool
     motivo_rejeicao: Optional[str]
+    categoria_encaminhamento: Optional[CategoriaEncaminhamentoAjuda]
     padrao_execucao: Optional[PadraoExecucao]
     justificativa_padrao: Optional[str]
     perfil_extraido: Optional[dict]
@@ -20,25 +60,50 @@ class EstadoSistema(TypedDict):
     iteracao_reflexion: int
     historico_reflexion: Optional[List[dict]]
     modelos_utilizados: Optional[dict]
+    resposta_beneficios: Optional[str]
+    mensagem_apoio: Optional[str]
     resposta_final: str
     status_api: str
 
 
-# Agente 1 — Guardrail + Seletor de Padrão (RIA07 / P02)
+# Agente 1 — Guardrail + Seletor de Padrão (RIA06 / RIA07 / P02)
 class ValidacaoEscopo(BaseModel):
     eh_valido: bool = Field(
         description=(
-            "True APENAS se o usuário estiver relatando situação socioeconômica, familiar, de vulnerabilidade, "
-            "saúde, moradia, educação, trabalho/renda, zona rural ou tirando dúvidas informativas sobre "
-            "programas/benefícios sociais. False para assuntos alheios (receitas, esportes, piadas, programação, "
-            "curiosidades) OU para pedidos operacionais vedados (consultar CPF/CadÚnico, verificar aprovação "
-            "de benefício, fazer cadastro pelo chat)."
+            "True SEMPRE que a mensagem contiver relato de situação socioeconômica, familiar, vulnerabilidade, "
+            "saúde, deficiência, moradia, educação, trabalho/desemprego/renda, alimentação, zona rural OU "
+            "dúvida informativa legítima sobre programas/benefícios sociais — INCLUSIVE quando também houver "
+            "menção a autoextermínio/sofrimento agudo ou vitimização/ocorrência penal na mesma mensagem "
+            "(ex.: 'sou mãe solteira, 3 filhos, desempregada, quero morrer' -> eh_valido=True). "
+            "False APENAS quando NÃO houver contexto socioeconômico/dúvida de benefício (ex.: crise ou relato "
+            "criminal isolado sem relação socioassistencial), quando for pedido de instrução para fraude/ilícito "
+            "('como falsificar documento'), pedido operacional vedado por P02 (consultar CPF/CadÚnico, fazer "
+            "cadastro pelo chat) ou assunto fora de escopo (receitas, esportes, piadas, programação)."
         )
     )
-    motivo: str = Field(description="Breve justificativa da decisão de escopo.")
-    tipo_bloqueio: Optional[Literal["fora_de_escopo", "operacao_proibida_cpf_cadastro"]] = Field(
+    motivo: str = Field(description="Breve justificativa objetiva, em português, da decisão do Guardrail.")
+    categoria_encaminhamento: Optional[CategoriaEncaminhamentoAjuda] = Field(
         default=None,
-        description="Preencher somente quando eh_valido=False; None quando a mensagem é válida.",
+        description=(
+            "Avaliado de forma INDEPENDENTE de eh_valido (pode ser preenchido tanto com eh_valido=True quanto False). "
+            "Preencha 'autoexterminio' para ideação suicida, intenção de tirar a própria vida ou automutilação/autolesão; "
+            "'codigo_penal' para elementos que ferem o Código Penal (violência doméstica/familiar, agressão, ameaça, "
+            "abuso/exploração, cárcere privado, trabalho escravo, furto/roubo/extorsão, retenção de documentos/cartão, "
+            "fraude/falsificação/ilícito penal); "
+            "'autoexterminio_e_codigo_penal' quando ambos ocorrerem juntos. "
+            "Deixe None quando não houver risco real nem matéria penal (metáforas como 'a conta de luz está me matando', "
+            "'morrendo de preocupação' ou 'cortaram meu Bolsa Família' devem ficar com categoria_encaminhamento=None)."
+        ),
+    )
+    tipo_bloqueio: Optional[TipoIntervencaoGuardrail] = Field(
+        default=None,
+        description=(
+            "Preencher SOMENTE quando eh_valido=False (deixe None quando eh_valido=True). "
+            "Valores quando eh_valido=False: 'fora_de_escopo' (assuntos alheios como receitas, esportes, piadas), "
+            "'operacao_proibida_cpf_cadastro' (consulta de CPF/CadÚnico, aprovação ou cadastro pelo chat) ou "
+            "'sem_escopo_socioeconomico' (quando houver apenas crise/crime isolado ou pedido de fraude sem relato "
+            "socioeconômico válido para análise de benefícios)."
+        ),
     )
     padrao_execucao: Optional[PadraoExecucao] = Field(
         default=None,
