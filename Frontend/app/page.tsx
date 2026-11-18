@@ -7,7 +7,6 @@ import {
   Check,
   ChevronDown,
   ChevronRight,
-  ExternalLink,
   GraduationCap,
   Heart,
   Home,
@@ -24,6 +23,11 @@ import {
   Zap,
 } from "lucide-react";
 import { perguntar, type Programa } from "@/lib/api";
+import { ReadingTopics } from "./components/reading-topics";
+import BenefitCard from "./components/benefit-card";
+import { useVoiceInput } from "./hooks/use-voice-input";
+import { useSpeechOutput } from "./hooks/use-speech-output";
+import { RecordButton, VoiceInputStatus, ReplyAudio } from "./components/voice-controls";
 
 type View = "home" | "chat" | "about";
 type Message = {
@@ -118,57 +122,14 @@ function Brand() {
     </span>
   );
 }
-function BenefitCard({ programa: p }: { programa: Programa }) {
-  return (
-    <article className="benefit-card">
-      <span className="card-tag">
-        <Landmark size={14} />
-        {p.esfera}
-      </span>
-      <h3>{p.titulo}</h3>
-      <p>{p.resumo}</p>
-      {p.publico_alvo && (
-        <div className="audience">
-          <strong>Para quem é</strong>
-          <p>{p.publico_alvo}</p>
-        </div>
-      )}
-      <details>
-        <summary>
-          Ver requisitos
-          <ChevronDown size={17} />
-        </summary>
-        <dl>
-          <dt>Quem pode pedir</dt>
-          <dd>
-            {!p.criterios || p.criterios.startsWith("Não especificado")
-              ? "Confirme os critérios no órgão responsável ou no CRAS."
-              : p.criterios}
-          </dd>
-          <dt>Órgão responsável</dt>
-          <dd>{p.orgao}</dd>
-          {p.lei && (
-            <>
-              <dt>Legislação</dt>
-              <dd>{p.lei}</dd>
-            </>
-          )}
-        </dl>
-      </details>
-      {p.url && (
-        <a href={p.url} target="_blank" rel="noreferrer">
-          Consultar fonte oficial
-          <ExternalLink size={15} />
-        </a>
-      )}
-    </article>
-  );
-}
 export default function Page() {
   const [view, setView] = useState<View>("home");
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const voice = useVoiceInput(setInput);
+  const speech = useSpeechOutput();
+  const audio = { ...speech, play: (id: string, text: string) => { voice.cancel(); speech.play(id, text); } };
   const requestRef = useRef<AbortController | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -184,9 +145,11 @@ export default function Page() {
   }, [messages, loading, view]);
   useEffect(() => () => requestRef.current?.abort(), []);
   function navigate(next: View) {
+    if (next !== view) { voice.cancel(); speech.stop(); }
     setView(next);
   }
   function newChat() {
+    voice.cancel(); speech.stop();
     requestRef.current?.abort();
     requestRef.current = null;
     setLoading(false);
@@ -196,7 +159,8 @@ export default function Page() {
   }
   async function sendMessage(value = input) {
     const text = value.trim();
-    if (!text || loading) return;
+    if (!text || loading || voice.active) return;
+    speech.stop();
     navigate("chat");
     setMessages((current) => [...current, { role: "user", text }]);
     setInput("");
@@ -205,12 +169,9 @@ export default function Page() {
     requestRef.current = controller;
     try {
       const { resposta, programas } = await perguntar(text, controller.signal);
-      const answer = programas.length
-        ? `Encontrei ${programas.length === 1 ? "um programa que pode" : `${programas.length} programas que podem`} ter relação com o que você precisa.`
-        : resposta;
       setMessages((current) => [
         ...current,
-        { role: "assistant", text: answer, programas },
+        { role: "assistant", text: resposta, programas },
       ]);
     } catch (error) {
       if (!controller.signal.aborted)
@@ -291,14 +252,17 @@ export default function Page() {
                       value={input}
                       onChange={(e) => setInput(e.target.value)}
                       placeholder="Escreva sua dúvida aqui"
+                      readOnly={voice.active}
                     />
+                    <RecordButton onBeforeStart={speech.stop} voice={voice} draft={input} disabled={loading} descriptionId="home-voice-status" />
                     <button
                       aria-label="Iniciar conversa"
-                      disabled={!input.trim() || loading}
+                      disabled={!input.trim() || loading || voice.active}
                     >
                       <ArrowRight size={22} />
                     </button>
                   </form>
+                  <VoiceInputStatus voice={voice} id="home-voice-status" />
                 </div>
                 <div className="hero-art" aria-hidden="true">
                   <div className="art-chat art-back">
@@ -330,7 +294,7 @@ export default function Page() {
                           className="category-card"
                           key={title}
                           onClick={() => sendMessage(question)}
-                          disabled={loading}
+                          disabled={loading || voice.active}
                         >
                           <span className={`category-icon ${color}`}>
                             <Icon size={26} strokeWidth={1.8} />
@@ -350,7 +314,7 @@ export default function Page() {
                     {suggestions.map((s) => (
                       <button
                         key={s}
-                        disabled={loading}
+                        disabled={loading || voice.active}
                         onClick={() => sendMessage(s)}
                       >
                         <MessageCircle size={18} />
@@ -385,6 +349,7 @@ export default function Page() {
                   {messages.length === 0 && (
                     <div className="chat-welcome">
                       <h2>Como posso ajudar?</h2>
+                      <ReplyAudio speech={audio} id="welcome" text={`Como posso ajudar? Você pode perguntar: ${suggestions.join(". ")}`} label="orientações da conversa" buttonText="Ouvir orientações" />
                       <div className="chat-suggestions">
                         {suggestions.map((s) => (
                           <button key={s} onClick={() => sendMessage(s)}>
@@ -400,8 +365,13 @@ export default function Page() {
                       <span className="message-label">
                         {m.role === "assistant" ? "GuIA Social" : "Você"}
                       </span>
+                      {m.role === "assistant" && <ReplyAudio speech={audio} id={`reply-${i}`} text={m.text} label={`resposta ${i + 1}`} />}
                       <div className={`bubble ${m.erro ? "error" : ""}`}>
-                        {m.text}
+                        {m.role === "assistant" && !m.erro
+                          ? m.programas?.length
+                            ? `Encontrei ${m.programas.length === 1 ? "um programa que pode" : `${m.programas.length} programas que podem`} ter relação com a sua situação:`
+                            : <ReadingTopics text={m.text} />
+                          : m.text}
                       </div>
                       {!!m.programas?.length && (
                         <>
@@ -410,6 +380,10 @@ export default function Page() {
                               <BenefitCard key={p.programa} programa={p} />
                             ))}
                           </div>
+                          <details className="response-details">
+                            <summary>Ver resposta completa da base <ChevronDown size={18} /></summary>
+                            <div className="source-response">{m.text}</div>
+                          </details>
                           <p className="result-notice">
                             <Info size={16} />
                             Confirme os requisitos no órgão responsável ou no
@@ -451,6 +425,7 @@ export default function Page() {
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     placeholder="Escreva sua dúvida aqui"
+                    readOnly={voice.active}
                     onKeyDown={(e) => {
                       if (
                         e.key === "Enter" &&
@@ -462,14 +437,16 @@ export default function Page() {
                       }
                     }}
                   />
+                  <RecordButton onBeforeStart={speech.stop} voice={voice} draft={input} disabled={loading} descriptionId="chat-voice-status" />
                   <button
                     type="submit"
-                    disabled={!input.trim() || loading}
+                    disabled={!input.trim() || loading || voice.active}
                     aria-label="Enviar mensagem"
                   >
                     <ArrowUp size={23} />
                   </button>
                 </form>
+                <VoiceInputStatus voice={voice} id="chat-voice-status" />
                 <p>
                   <ShieldCheck size={14} />
                   Não compartilhe dados pessoais ou bancários.
@@ -487,8 +464,7 @@ export default function Page() {
                 </div>
                 <p>
                   Um assistente com <strong>inteligência artificial</strong>{" "}
-                  para ajudar você a entender benefícios sociais e encontrar
-                  caminhos de apoio.
+                  para ajudar você a entender benefícios sociais e encontrar caminhos de apoio.
                 </p>
                 <div className="about-cards">
                   <article>

@@ -107,7 +107,7 @@ a {
   color: white;
   border: 0;
   border-radius: 30px;
-  font-size: calc(15px * var(--text-scale, 1));
+  font-size: calc(20px * var(--text-scale, 1));
   font-weight: 600;
   margin: 38px 0 31px;
   min-height: 48px;
@@ -117,7 +117,7 @@ a {
   background: #0c326f;
 }
 .nav-label {
-  font-size: calc(11px * var(--text-scale, 1));
+  font-size: calc(20px * var(--text-scale, 1));
   font-weight: 700;
   letter-spacing: 1.7px;
   color: #61738a;
@@ -133,7 +133,7 @@ a {
   padding: 14px;
   border-radius: 9px;
   color: var(--muted);
-  font-size: calc(15px * var(--text-scale, 1));
+  font-size: calc(20px * var(--text-scale, 1));
   margin: 4px 0;
   text-align: left;
   min-height: 48px;
@@ -166,10 +166,10 @@ a {
   margin-bottom: 13px;
 }
 .sidebar-help strong {
-  font-size: calc(15px * var(--text-scale, 1));
+  font-size: calc(20px * var(--text-scale, 1));
 }
 .sidebar-help p {
-  font-size: calc(13px * var(--text-scale, 1));
+  font-size: calc(20px * var(--text-scale, 1));
   line-height: 1.8;
   color: var(--muted);
   margin: 8px 0 0;
@@ -182,7 +182,7 @@ a {
   display: flex;
   gap: 9px;
   align-items: center;
-  font-size: calc(13px * var(--text-scale, 1));
+  font-size: calc(20px * var(--text-scale, 1));
   color: var(--muted);
   padding: 0 10px 20px;
 }
@@ -202,15 +202,15 @@ a {
   background: #edf2fa;
   color: var(--blue);
   font-weight: 700;
-  font-size: calc(14px * var(--text-scale, 1));
+  font-size: calc(20px * var(--text-scale, 1));
 }
 .visitor strong {
-  font-size: calc(13px * var(--text-scale, 1));
+  font-size: calc(20px * var(--text-scale, 1));
 }
 .visitor small {
   display: block;
   margin-top: 5px;
-  font-size: calc(12px * var(--text-scale, 1));
+  font-size: calc(20px * var(--text-scale, 1));
   color: #63758a;
 }
 .main-area {
@@ -230,14 +230,14 @@ a {
   gap: 25px;
 }
 .desktop-context {
-  font-size: calc(14px * var(--text-scale, 1));
+  font-size: calc(20px * var(--text-scale, 1));
   color: var(--muted);
 }
 .topbar-location {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: calc(13px * var(--text-scale, 1));
+  font-size: calc(20px * var(--text-scale, 1));
   color: var(--muted);
   margin-left: auto;
 }
@@ -255,7 +255,7 @@ a {
   border: 0;
   border-left: 1px solid var(--line);
   background: none;
-  font-size: calc(13px * var(--text-scale, 1));
+  font-size: calc(20px * var(--text-scale, 1));
   color: var(--navy);
   min-height: 44px;
 }
@@ -308,7 +308,7 @@ a {
   display: flex;
   gap: 8px;
   align-items: center;
-  font-size: calc(11px * var(--text-scale, 1));
+  font-size: calc(20px * var(--text-scale, 1));
   letter-spacing: 1.7px;
   font-weight: 600;
   color: #d8e6fc;
@@ -328,7 +328,7 @@ a {
 }
 .hero-copy > p {
   color: #e0eafe;
-  font-size: calc(16px * var(--text-scale, 1));
+  font-size: calc(20px * var(--text-scale, 1));
   line-height: 1.7;
   margin: 0 0 23px;
 }
@@ -353,7 +353,7 @@ a {
   border: 0;
   outline: 0;
   padding: 11px 0;
-  font-size: calc(16px * var(--text-scale, 1));
+  font-size: calc(20px * var(--text-scale, 1));
   color: var(--ink);
   background: white;
 }
@@ -377,7 +377,7 @@ a {
   align-items: center;
   margin-top: 13px;
   color: #d1e1fa;
-  font-size: calc(12px * var(--text-scale, 1));
+  font-size: calc(20px * var(--text-scale, 1));
 }
 .hero-art {
   position: relative;
@@ -505,7 +505,7 @@ a {
   margin-bottom: 21px;
 }
 .eyebrow {
-  font-size: calc(10px * var(--text-scale, 1));
+  font-size: calc(20px * var(--text-scale, 1));
   letter-spacing: 1.5px;
   font-weight: 700;
   color: #596e89;
@@ -517,7 +517,7 @@ a {
   color: var(--navy);
 }
 .section-caption {
-  font-size: calc(12px * var(--text-scale, 1));
+  font-size: calc(20px * var(--text-scale, 1));
   color: #61738a;
   padding-bottom: 3px;
 }
@@ -576,12 +576,12 @@ a {
   background: #eaf7f0;
 }
 .category-card strong {
-  font-size: calc(16px * var(--text-scale, 1));
+  font-size: calc(20px * var(--text-scale, 1));
   margin-bottom: 6px;
   color: var(--navy);
 }
 .category-card > span:not(.category-icon) {
-  font-size: calc(13px * var(--text-scale, 1));
+  font-size: calc(20px * var(--text-scale, 1));
   color: #60728a;
 }
 .category-arrow {
@@ -621,7 +621,7 @@ a {
 }
 .conversation-banner p {
   color: #536b8a;
-  font-size: calc(13px * var(--text-scale, 1));
+  font-size: calc(20px * var(--text-scale, 1));
   line-height: 1.6;
   margin: 0;
 }
@@ -636,7 +636,7 @@ a {
   border: 1px solid #c1d3ee;
   border-radius: 25px;
   padding: 13px 17px;
-  font-size: calc(14px * var(--text-scale, 1));
+  font-size: calc(20px * var(--text-scale, 1));
   font-weight: 600;
 }
 .common-questions .section-heading h2 {
@@ -658,7 +658,7 @@ a {
   border-radius: 10px;
   padding: 17px 14px;
   color: var(--navy);
-  font-size: calc(14px * var(--text-scale, 1));
+  font-size: calc(20px * var(--text-scale, 1));
   line-height: 1.5;
 }
 .common-questions button > svg {
@@ -680,7 +680,7 @@ a {
   flex-shrink: 0;
 }
 .home-footer p {
-  font-size: calc(12px * var(--text-scale, 1));
+  font-size: calc(20px * var(--text-scale, 1));
   line-height: 1.7;
   margin: 0;
 }
@@ -702,12 +702,12 @@ a {
   height: 45px;
 }
 .chat-heading h1 {
-  font-size: calc(18px * var(--text-scale, 1));
+  font-size: calc(20px * var(--text-scale, 1));
   margin: 0 0 6px;
   color: var(--navy);
 }
 .chat-heading p {
-  font-size: calc(13px * var(--text-scale, 1));
+  font-size: calc(20px * var(--text-scale, 1));
   color: var(--muted);
   margin: 0;
 }
@@ -745,7 +745,7 @@ a {
   align-items: end;
 }
 .message-label {
-  font-size: calc(12px * var(--text-scale, 1));
+  font-size: calc(20px * var(--text-scale, 1));
   font-weight: 600;
   color: #536d8c;
   margin: 0 3px 8px;
@@ -755,7 +755,7 @@ a {
   border: 1px solid var(--line);
   border-radius: 4px 16px 16px;
   padding: 15px 18px;
-  font-size: calc(16px * var(--text-scale, 1));
+  font-size: calc(20px * var(--text-scale, 1));
   line-height: 1.8;
   white-space: pre-line;
   max-width: 90%;
@@ -786,7 +786,7 @@ a {
   padding: 22px;
 }
 .card-tag {
-  font-size: calc(12px * var(--text-scale, 1));
+  font-size: calc(20px * var(--text-scale, 1));
   color: #526e94;
   display: flex;
   gap: 6px;
@@ -800,7 +800,7 @@ a {
 }
 .benefit-card p,
 .benefit-card dd {
-  font-size: calc(14px * var(--text-scale, 1));
+  font-size: calc(20px * var(--text-scale, 1));
   line-height: 1.8;
   color: var(--muted);
   margin: 0;
@@ -810,7 +810,7 @@ a {
 }
 .audience strong,
 .benefit-card dt {
-  font-size: calc(13px * var(--text-scale, 1));
+  font-size: calc(20px * var(--text-scale, 1));
   font-weight: 700;
   color: var(--ink);
   display: block;
@@ -826,7 +826,7 @@ a {
   display: flex;
   justify-content: space-between;
   padding: 16px 0;
-  font-size: calc(14px * var(--text-scale, 1));
+  font-size: calc(20px * var(--text-scale, 1));
   color: var(--blue);
   font-weight: 600;
 }
@@ -843,7 +843,7 @@ a {
   display: inline-flex;
   gap: 8px;
   align-items: center;
-  font-size: calc(14px * var(--text-scale, 1));
+  font-size: calc(20px * var(--text-scale, 1));
   text-decoration: none;
   font-weight: 600;
   line-height: 1.6;
@@ -853,7 +853,7 @@ a {
   text-decoration: underline;
 }
 .result-notice {
-  font-size: calc(12px * var(--text-scale, 1));
+  font-size: calc(20px * var(--text-scale, 1));
   line-height: 1.7;
   color: #536b8a;
   display: flex;
@@ -895,7 +895,7 @@ a {
   padding: 9px 0;
   background: transparent;
   color: var(--ink);
-  font-size: calc(16px * var(--text-scale, 1));
+  font-size: calc(20px * var(--text-scale, 1));
 }
 .composer textarea::placeholder {
   color: #65778f;
@@ -917,7 +917,7 @@ a {
   justify-content: center;
   gap: 6px;
   color: #5e728c;
-  font-size: calc(12px * var(--text-scale, 1));
+  font-size: calc(20px * var(--text-scale, 1));
   margin: 11px 0 0;
 }
 .chat-welcome {
@@ -942,7 +942,7 @@ a {
   color: var(--navy);
 }
 .chat-welcome > p {
-  font-size: calc(16px * var(--text-scale, 1));
+  font-size: calc(20px * var(--text-scale, 1));
   line-height: 1.8;
   color: var(--muted);
 }
@@ -962,7 +962,7 @@ a {
   background: white;
   border-radius: 10px;
   color: var(--navy);
-  font-size: calc(15px * var(--text-scale, 1));
+  font-size: calc(20px * var(--text-scale, 1));
 }
 .typing {
   display: flex;
@@ -983,7 +983,7 @@ a {
   animation-delay: 0.3s;
 }
 .typing small {
-  font-size: calc(12px * var(--text-scale, 1));
+  font-size: calc(20px * var(--text-scale, 1));
   color: var(--muted);
   margin-left: 7px;
 }
@@ -1010,7 +1010,7 @@ a {
   color: var(--navy);
 }
 .about-page > p {
-  font-size: calc(16px * var(--text-scale, 1));
+  font-size: calc(20px * var(--text-scale, 1));
   line-height: 1.9;
   color: var(--muted);
   max-width: 700px;
@@ -1037,7 +1037,7 @@ a {
 }
 .about-cards p,
 .about-notice p {
-  font-size: calc(14px * var(--text-scale, 1));
+  font-size: calc(20px * var(--text-scale, 1));
   line-height: 1.8;
   color: var(--muted);
   margin: 0;
@@ -1065,7 +1065,7 @@ a {
   border-radius: 30px;
   padding: 15px 22px;
   font-weight: 600;
-  font-size: calc(15px * var(--text-scale, 1));
+  font-size: calc(20px * var(--text-scale, 1));
 }
 .sr-only,
 .skip-link:not(:focus) {
@@ -1254,7 +1254,7 @@ a {
     align-items: center;
     gap: 5px;
     color: #61738a;
-    font-size: calc(12px * var(--text-scale, 1));
+    font-size: calc(20px * var(--text-scale, 1));
     padding: 8px 25px;
     border-radius: 10px;
   }
@@ -1273,11 +1273,11 @@ a {
     margin-top: 15px;
   }
   .hero-eyebrow {
-    font-size: calc(10px * var(--text-scale, 1));
+    font-size: calc(20px * var(--text-scale, 1));
     letter-spacing: 1.3px;
   }
   .hero-copy > p {
-    font-size: calc(15px * var(--text-scale, 1));
+    font-size: calc(20px * var(--text-scale, 1));
     margin-bottom: 21px;
   }
   .home-search {
@@ -1286,10 +1286,10 @@ a {
     border-radius: 10px;
   }
   .home-search input {
-    font-size: calc(16px * var(--text-scale, 1));
+    font-size: calc(20px * var(--text-scale, 1));
   }
   .hero-note {
-    font-size: calc(11px * var(--text-scale, 1));
+    font-size: calc(20px * var(--text-scale, 1));
   }
   .home-content {
     padding: 28px 19px 0;
@@ -1302,7 +1302,7 @@ a {
     letter-spacing: -0.5px;
   }
   .eyebrow {
-    font-size: calc(9px * var(--text-scale, 1));
+    font-size: calc(20px * var(--text-scale, 1));
   }
   .category-grid {
     gap: 11px;
@@ -1312,10 +1312,10 @@ a {
     padding: 17px 14px;
   }
   .category-card strong {
-    font-size: calc(15px * var(--text-scale, 1));
+    font-size: calc(20px * var(--text-scale, 1));
   }
   .category-card > span:not(.category-icon) {
-    font-size: calc(12px * var(--text-scale, 1));
+    font-size: calc(20px * var(--text-scale, 1));
   }
   .category-arrow {
     right: 9px;
@@ -1342,7 +1342,7 @@ a {
     line-height: 1.4;
   }
   .conversation-banner p {
-    font-size: calc(14px * var(--text-scale, 1));
+    font-size: calc(20px * var(--text-scale, 1));
   }
   .conversation-banner button {
     margin: 2px 0 0;
@@ -1353,10 +1353,10 @@ a {
     min-width: 175px;
   }
   .common-questions .section-heading h2 {
-    font-size: calc(18px * var(--text-scale, 1));
+    font-size: calc(20px * var(--text-scale, 1));
   }
   .common-questions button {
-    font-size: calc(14px * var(--text-scale, 1));
+    font-size: calc(20px * var(--text-scale, 1));
     padding: 17px;
   }
   .home-footer {
@@ -1368,17 +1368,17 @@ a {
     margin-top: 3px;
   }
   .home-footer p {
-    font-size: calc(11px * var(--text-scale, 1));
+    font-size: calc(20px * var(--text-scale, 1));
   }
   .chat-heading {
     padding: 16px 18px;
     gap: 10px;
   }
   .chat-heading h1 {
-    font-size: calc(16px * var(--text-scale, 1));
+    font-size: calc(20px * var(--text-scale, 1));
   }
   .chat-heading p {
-    font-size: calc(12px * var(--text-scale, 1));
+    font-size: calc(20px * var(--text-scale, 1));
   }
   .assistant-icon {
     width: 40px;
@@ -1397,7 +1397,7 @@ a {
     padding: 11px 15px 12px;
   }
   .composer-wrap > p {
-    font-size: calc(10px * var(--text-scale, 1));
+    font-size: calc(20px * var(--text-scale, 1));
   }
   .chat-welcome {
     margin-top: 20px;
@@ -1406,10 +1406,10 @@ a {
     font-size: calc(24px * var(--text-scale, 1));
   }
   .chat-welcome > p {
-    font-size: calc(15px * var(--text-scale, 1));
+    font-size: calc(20px * var(--text-scale, 1));
   }
   .chat-suggestions button {
-    font-size: calc(14px * var(--text-scale, 1));
+    font-size: calc(20px * var(--text-scale, 1));
   }
   .benefit-card {
     padding: 20px;
@@ -1429,10 +1429,10 @@ a {
 }
 @media (max-width: 360px) {
   .category-card > span:not(.category-icon) {
-    font-size: calc(11px * var(--text-scale, 1));
+    font-size: calc(20px * var(--text-scale, 1));
   }
   .category-card strong {
-    font-size: calc(14px * var(--text-scale, 1));
+    font-size: calc(20px * var(--text-scale, 1));
   }
   .hero {
     padding-left: 18px;
@@ -1485,7 +1485,7 @@ a {
   height: 22px;
 }
 .category-card strong {
-  font-size: calc(16px * var(--text-scale, 1));
+  font-size: calc(20px * var(--text-scale, 1));
   margin: 0;
 }
 .category-arrow {
@@ -1674,7 +1674,7 @@ a {
   background: #fff;
   color: var(--ink);
   box-shadow: 0 20px 70px #071d4133;
-  font-size: calc(16px * var(--text-scale, 1));
+  font-size: calc(20px * var(--text-scale, 1));
 }
 .accessibility-panel::backdrop {
   background: #071d4159;
@@ -2141,7 +2141,7 @@ html[data-night-mode="true"]:not([data-high-contrast="true"])
   color: #0c326f;
   border: 1px solid #cbd7e7;
   border-radius: 25px;
-  font-size: calc(14px * var(--text-scale, 1));
+  font-size: calc(20px * var(--text-scale, 1));
 }
 .night-mode-toggle > svg {
   flex-shrink: 0;
@@ -2312,3 +2312,73 @@ html[data-night-mode="true"]:not([data-high-contrast="true"]) .about-cards artic
 html[data-night-mode="true"]:not([data-high-contrast="true"]) .about-cards article:nth-child(1) svg { color: #28c781; }
 html[data-night-mode="true"]:not([data-high-contrast="true"]) .about-cards article:nth-child(2) svg { color: #ac75ff; }
 html[data-night-mode="true"]:not([data-high-contrast="true"]) .about-cards article:nth-child(3) svg { color: #f0a83c; }
+
+
+/* RNF02: 16px minimum text and 48px minimum native interaction targets. */
+body { font-size: 20px; }
+button, input:not([type="hidden"]), select, textarea, summary { min-height: 48px; }
+button, select, summary { min-width: 48px; }
+a.card-link, .benefit-card > a { min-height: 48px; }
+.nav-item, .bottom-nav button { height: auto; }
+.nav-item { overflow-wrap: anywhere; }
+.sidebar-brand .brand { white-space: normal; }
+.bottom-nav button { min-width: 0; flex: 1; padding-left: 8px; padding-right: 8px; }
+.home-search button, .composer button { width: 48px; height: 48px; flex-shrink: 0; }
+.home-search { min-height: 62px; }
+.composer { min-height: 66px; }
+.benefit-cards { grid-template-columns: 1fr; }
+.reading-section { margin: 18px 0; }
+.reading-section h4 { margin: 0 0 8px; font-size: calc(20px * var(--text-scale, 1)); color: inherit; }
+.reading-topics { padding-left: 22px; margin: 0; font-size: inherit; line-height: 1.7; white-space: normal; overflow-wrap: anywhere; }
+.reading-topics li + li { margin-top: 10px; }
+.benefit-card .reading-topics { font-size: calc(20px * var(--text-scale, 1)); color: inherit; }
+.response-details { width: 100%; border: 1px solid var(--line); border-radius: 12px; background: #fff; padding: 0 16px; margin-top: 14px; }
+.response-details summary, .reading-terms summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; cursor: pointer; color: var(--blue); font-weight: 600; padding: 12px 0; }
+.source-response { padding: 12px 0 18px; white-space: pre-wrap; line-height: 1.8; overflow-wrap: anywhere; }
+.source-details dd { white-space: pre-line; }
+.reading-terms dl > div { margin-bottom: 12px; }
+html[data-night-mode="true"]:not([data-high-contrast="true"]) .response-details { background: #282828; color: #fff; border-color: #474747; }
+html[data-night-mode="true"]:not([data-high-contrast="true"]) :is(.response-details summary, .reading-terms summary) { color: #b6d3ff; }
+@media (max-width: 700px) {
+ .chat-heading { align-items: center; }
+ .chat-heading h1 { line-height: 1.4; }
+ .composer-wrap > p { flex-wrap: wrap; text-align: center; line-height: 1.5; }
+ .bottom-nav button { font-size: calc(20px * var(--text-scale, 1)); }
+}
+
+
+/* Voice controls remain explicit: recording never submits a message automatically. */
+.home-search button.voice-record, .composer button.voice-record {
+  background: #edf3ff; color: #1351b4; border: 1px solid #b5c9e8; flex-shrink: 0;
+}
+.home-search button.voice-record.is-recording, .composer button.voice-record.is-recording { background: #fff0f0; color: #a21924; border-color: #c74650; }
+.voice-input-status { font-size: calc(20px * var(--text-scale, 1)); line-height: 1.5; }
+.voice-input-status p:empty { display: none; }
+.voice-input-status p { margin: 10px 0 0; }
+.voice-input-status small { display: block; font-size: inherit; margin-top: 8px; }
+.hero .voice-input-status { color: #e0eafe; max-width: 520px; }
+.composer-wrap .voice-input-status { color: var(--muted); }
+.reply-audio { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 10px; }
+.voice-action { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 14px; border: 1px solid #b5c9e8; border-radius: 24px; background: #fff; color: #1351b4; font-size: calc(20px * var(--text-scale, 1)); }
+.speech-status { font-size: calc(20px * var(--text-scale, 1)); color: var(--muted); }
+html[data-night-mode="true"]:not([data-high-contrast="true"]) :is(.voice-action, .home-search button.voice-record, .composer button.voice-record) { background: #142641; color: #c6ddff; border-color: #52637b; }
+html[data-high-contrast="true"] :is(.voice-action, .voice-record) { border: 2px solid #ffed00 !important; }
+html[data-highlight-links="true"] :is(.home-search, .composer) button.voice-record::after { display: block; }
+@media(max-width: 700px) {
+ .composer { gap: 6px; padding-left: 12px; }
+ .home-search { gap: 7px; padding-left: 12px; }
+ .home-search > svg { flex-shrink: 0; }
+}
+
+.voice-action.voice-listen {
+  background: #1351b4; color: #fff; border-color: #1351b4;
+  font-weight: 600; box-shadow: 0 3px 8px #0c326f20;
+}
+.voice-action.voice-listen:hover:not(:disabled) { background: #0c326f; }
+html[data-night-mode="true"]:not([data-high-contrast="true"]) .voice-action.voice-listen {
+  background: #235eb6; color: #fff; border-color: #8ab4ff;
+}
+html[data-night-mode="true"]:not([data-high-contrast="true"]) .voice-action.voice-listen:hover:not(:disabled) { background: #2b6bca; }
+
+.voice-stop-symbol { color: #c62828; }
+html[data-night-mode="true"]:not([data-high-contrast="true"]) .voice-stop-symbol { color: #ff6b6b; }

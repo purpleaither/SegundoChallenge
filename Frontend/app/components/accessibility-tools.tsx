@@ -63,6 +63,7 @@ export default function AccessibilityTools() {
     root.dataset.reduceMotion = String(preferences.reduceMotion);
     root.dataset.textSpacing = String(preferences.textSpacing);
     root.dataset.nightMode = String(preferences.nightMode);
+    root.removeAttribute("data-dyslexia-mode");
     try {
       localStorage.setItem(storageKey, JSON.stringify(preferences));
     } catch {
