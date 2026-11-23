@@ -100,6 +100,16 @@ def _float_env(nome: str, padrao: float, minimo: float = 0.5) -> float:
         return padrao
 
 
+def _int_env(nome: str, padrao: int, minimo: int = 1) -> int:
+    bruto = os.getenv(nome, "").strip()
+    if not bruto:
+        return padrao
+    try:
+        return max(minimo, int(bruto))
+    except ValueError:
+        return padrao
+
+
 class ProvedorOllama:
     """Cliente leve para o Ollama local (/api/chat) com constrained JSON nativo via `format`."""
 
@@ -108,12 +118,14 @@ class ProvedorOllama:
     def esta_configurado(self) -> bool:
         return bool(os.getenv("OLLAMA_URL", "http://127.0.0.1:11434").strip())
 
-    def _config(self, tier: str, timeout_tier: int) -> tuple[str, str, httpx.Timeout]:
+    def _config(self, tier: str, timeout_tier: int) -> tuple[str, str, int, httpx.Timeout]:
         base_url = os.getenv("OLLAMA_URL", "http://127.0.0.1:11434").strip().rstrip("/")
         modelo = _resolver_modelo_por_tier("OLLAMA_LLM_MODEL", tier, "qwen2.5:7b")
+        # Prompts com 4 fichas oficiais + parecer ultrapassam ~4k tokens e truncam o system prompt no default do Ollama.
+        num_ctx = _int_env("OLLAMA_NUM_CTX", 8192, minimo=2048)
         timeout_total = _float_env("OLLAMA_LLM_TIMEOUT", float(timeout_tier), minimo=5.0)
         timeout_conexao = _float_env("OLLAMA_CONNECT_TIMEOUT", 3.0, minimo=0.5)
-        return base_url, modelo, httpx.Timeout(timeout_total, connect=min(timeout_conexao, timeout_total))
+        return base_url, modelo, num_ctx, httpx.Timeout(timeout_total, connect=min(timeout_conexao, timeout_total))
 
     def _post_chat(self, base_url: str, payload: dict[str, Any], timeout: httpx.Timeout) -> dict[str, Any]:
         with httpx.Client(timeout=timeout) as client:
@@ -133,7 +145,7 @@ class ProvedorOllama:
         temperature: float,
         timeout_tier: int,
     ) -> tuple[T, str]:
-        base_url, modelo, timeout = self._config(tier, timeout_tier)
+        base_url, modelo, num_ctx, timeout = self._config(tier, timeout_tier)
         identificador = f"ollama/{modelo}"
         payload = {
             "model": modelo,
@@ -142,7 +154,7 @@ class ProvedorOllama:
                 {"role": "user", "content": prompt_usuario},
             ],
             "stream": False,
-            "options": {"temperature": temperature},
+            "options": {"temperature": temperature, "num_ctx": num_ctx},
             "format": schema.model_json_schema(),
         }
         dados = self._post_chat(base_url, payload, timeout)
@@ -157,7 +169,7 @@ class ProvedorOllama:
         temperature: float,
         timeout_tier: int,
     ) -> tuple[str, str]:
-        base_url, modelo, timeout = self._config(tier, timeout_tier)
+        base_url, modelo, num_ctx, timeout = self._config(tier, timeout_tier)
         identificador = f"ollama/{modelo}"
         payload = {
             "model": modelo,
@@ -166,7 +178,7 @@ class ProvedorOllama:
                 {"role": "user", "content": prompt_usuario},
             ],
             "stream": False,
-            "options": {"temperature": temperature},
+            "options": {"temperature": temperature, "num_ctx": num_ctx},
         }
         dados = self._post_chat(base_url, payload, timeout)
         texto = str((dados.get("message") or {}).get("content") or "").strip()

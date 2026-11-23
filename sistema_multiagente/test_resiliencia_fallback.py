@@ -407,6 +407,31 @@ class Camada2ProvedoresSecundariosTests(unittest.TestCase):
                 enviado = mock_post.call_args.kwargs["json"]
                 self.assertEqual(enviado["format"], schema.model_json_schema())
                 self.assertFalse(enviado["stream"])
+                self.assertEqual(enviado["options"]["num_ctx"], 8192)
+
+    def test_ollama_texto_respeita_num_ctx_configuravel_e_minimo(self) -> None:
+        resp_mock = MagicMock()
+        resp_mock.raise_for_status.return_value = None
+        resp_mock.json.return_value = {"message": {"content": "Orientação gerada via Ollama."}}
+
+        with (
+            patch.dict(
+                os.environ,
+                {
+                    "GOOGLE_API_KEY": "",
+                    "LLM_FALLBACK_ORDER": "ollama",
+                    "OLLAMA_LLM_MODEL": "qwen2.5:7b",
+                    "OLLAMA_NUM_CTX": "12288",
+                },
+            ),
+            patch.object(httpx.Client, "post", return_value=resp_mock) as mock_post,
+        ):
+            texto, modelo = config.invocar_texto("comunicador", "sys", "usr")
+
+        self.assertEqual(texto, "Orientação gerada via Ollama.")
+        self.assertEqual(modelo, "ollama/qwen2.5:7b")
+        enviado = mock_post.call_args.kwargs["json"]
+        self.assertEqual(enviado["options"]["num_ctx"], 12288)
 
     def test_ollama_offline_falha_rapido_sem_retry_e_preserva_erro_safety_do_gemini(self) -> None:
         esperas: list[float] = []
