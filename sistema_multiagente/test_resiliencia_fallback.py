@@ -919,6 +919,72 @@ class Camadas3e4DegradacaoPipelineTests(unittest.TestCase):
         self.assertIn("[EVENTOS DE FALLBACK / RESILIÊNCIA]", saida)
         self.assertIn("guardrail: indisponibilidade LLM", saida)
 
+    def test_fallback_rag_formata_resposta_compacta_preservando_informacoes_sem_duplicar_criterios_ou_urls(self) -> None:
+        docs = [
+            "=== DOCUMENTO 1 (similaridade: 0.85) ===\n"
+            "Programa oficial: Bolsa Família\n"
+            "Órgão responsável: MDS\n"
+            "URL oficial: https://mds.gov.br/cartilha.pdf\n\n"
+            "# Bolsa Família\n"
+            "Tipo de benefício: Transferência monetária\n"
+            "Público-alvo: Famílias em situação de pobreza ou vulnerabilidade.\n"
+            "Critérios: Não especificados no documento de origem.\n"
+            "Status dos critérios no documento: Critérios não especificados no documento\n"
+            "Legislação base: Lei nº 14.601/2023\n"
+            "Regulamentação principal: Decreto nº 12.064/2024\n",
+            "=== DOCUMENTO 2 (similaridade: 0.80) ===\n"
+            "Programa oficial: Tarifa Social de Energia Elétrica\n"
+            "Órgão responsável: ANEEL\n"
+            "URL oficial: https://mds.gov.br/cartilha.pdf\n\n"
+            "# Tarifa Social de Energia Elétrica\n"
+            "Nome atual indicado na planilha: Tarifa Social de Energia Elétrica / Luz do Povo\n"
+            "Tipo de benefício: Desconto na conta de energia\n"
+            "Público-alvo: Famílias inscritas no Cadastro Único com renda per capita de até meio salário mínimo ou com integrante beneficiário do BPC.\n"
+            "Critérios: Inscrição no Cadastro Único com renda de até meio salário mínimo por pessoa OU integrante beneficiário do BPC. O documento descreve condição específica para famílias indígenas ou quilombolas inscritas no Cadastro Único.\n"
+            "Status dos critérios no documento: Informação parcial no documento\n"
+            "Legislação base: Lei nº 12.212/2010; Lei nº 10.438/2002\n"
+            "Regulamentação principal: Resolução Normativa ANEEL nº 1.000/2021\n"
+            "Atualização normativa recente: Lei nº 15.235/2025 (Luz do Povo)\n",
+        ]
+        texto = rag.compor_resposta_deterministica_rag(
+            documentos=docs,
+            analise_elegibilidade=None,
+            aviso_institucional=agents.AVISO_INSTITUCIONAL,
+        )
+
+        # Preserva todas as informações essenciais e legais
+        for trecho in (
+            "modo informativo simplificado",
+            "sem afirmação de direito ou elegibilidade",
+            "Bolsa Família",
+            "MDS",
+            "Lei nº 14.601/2023",
+            "Decreto nº 12.064/2024",
+            "Tarifa Social de Energia Elétrica",
+            "Luz do Povo",
+            "ANEEL",
+            "meio salário mínimo",
+            "indígenas ou quilombolas",
+            "Lei nº 15.235/2025",
+            "**Próximos passos práticos**",
+            agents.AVISO_INSTITUCIONAL,
+        ):
+            self.assertIn(trecho, texto)
+
+        # Mantém formato compacto (1 bullet por programa, sem subtítulos longos, sem URLs cruas nem repetição de transparência)
+        self.assertNotIn("### ", texto)
+        self.assertNotIn("https://", texto)
+        self.assertNotIn("Transparência documental:", texto)
+        self.assertEqual(texto.count("confirme as regras completas no CRAS"), 1)
+
+    def test_regras_comunicador_orientam_concisao_preservando_ancoragem_e_p02(self) -> None:
+        regras = agents.REGRAS_COMUNICACAO_P02
+        self.assertIn("Concisão", regras)
+        self.assertIn("UM único item de lista curto", regras)
+        self.assertIn("sem colar URLs longas", regras)
+        self.assertIn("**Próximos passos práticos**", regras)
+        self.assertIn(agents.AVISO_INSTITUCIONAL, regras)
+
 
 if __name__ == "__main__":
     unittest.main()

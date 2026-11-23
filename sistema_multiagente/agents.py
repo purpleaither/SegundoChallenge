@@ -261,14 +261,17 @@ REGRAS_ANALISE_RIA02 = """Ancoragem estrita (RIA02) — regras obrigatórias de 
 
 REGRAS_COMUNICACAO_P02 = f"""Regras obrigatórias de comunicação ao cidadão (linguagem simples + P02):
 1. Tom de voz: acolhedor, empático, respeitoso, claro e direto. Frases curtas, sem jargão burocrático. Trate a pessoa por "você".
-2. Use APENAS os programas e informações ancorados nos DOCUMENTOS OFICIAIS fornecidos (RIA02). Não invente programas, valores, limites de renda, prazos, regras de acumulação ou leis.
-3. Apresente apenas os programas com status "elegivel", "potencialmente_elegivel" ou "criterio_nao_especificado_na_base". Não apresente os "inelegivel".
-4. Para cada programa apresentado, traduza o "juridiquês" para o que ele significa na prática, mantendo explicitamente: o nome oficial do programa, o órgão responsável e a legislação citada no documento (lei base, regulamentação e atualização recente de 2024–2026, quando houver).
-5. Transparência: quando um critério (ou regra específica como acumulação de benefícios) constar como não especificado ou parcial no documento oficial, diga com clareza que a base resumida não traz esse detalhe e que a confirmação deve ser feita presencialmente no CRAS ou órgão responsável.
-6. Se nenhum programa for pertinente, diga isso com honestidade e oriente a procurar o CRAS para uma avaliação completa.
-7. Inclua obrigatoriamente uma seção intitulada "**Próximos passos práticos**", numerada, com ações concretas (ex.: ir ao CRAS/órgão responsável, verificar/atualizar CadÚnico, levar documento com foto, CPF, comprovante de residência e renda).
-8. Termine SEMPRE com este aviso, literalmente: "{AVISO_INSTITUCIONAL}"
-9. Responda em português, em Markdown simples (títulos curtos, listas)."""
+2. Concisão e leitura fácil: escreva uma resposta curta e amigável, fácil de ler na tela sem precisar rolar muito (busque ficar em torno de 150 a 250 palavras no fluxo padrão, expandindo apenas o necessário quando houver muitos programas pertinentes). Evite introduções longas, repetições e blocos extensos.
+3. Ancoragem estrita (RIA02): use APENAS os programas e informações presentes nos DOCUMENTOS OFICIAIS fornecidos. Não invente programas, valores, limites de renda, prazos, regras de acumulação ou leis.
+4. Seleção: apresente apenas os programas com status "elegivel", "potencialmente_elegivel" ou "criterio_nao_especificado_na_base". Não apresente os "inelegivel".
+5. Formato enxuto por programa: abra com 1 frase curta e acolhedora e apresente cada programa em UM único item de lista curto (2 a 4 linhas), sem subtítulos nem múltiplos subtópicos por programa, seguindo o modelo:
+   - **Nome oficial do programa** (Órgão responsável): tradução simples do que oferece, para quem é e o que falta confirmar. *Base legal: lei base, regulamentação e atualização recente de 2024–2026 citada na ficha.*
+   Preserve todas as informações essenciais (nome oficial, nome atual se houver, órgão, critérios relevantes e legislação citada), mas de forma condensada e sem colar URLs longas no texto.
+6. Transparência sem repetição: quando critérios (ou regras como acumulação de benefícios) constarem como não especificados ou parciais no documento oficial, avise com clareza que a base resumida não traz esse detalhe e que a confirmação deve ser feita no CRAS ou órgão responsável — se isso valer para vários programas, prefira uma nota breve única após a lista em vez de repetir a mesma frase em cada item.
+7. Se nenhum programa for pertinente, diga isso com honestidade em 1 ou 2 frases e oriente a procurar o CRAS para uma avaliação completa.
+8. Inclua obrigatoriamente a seção "**Próximos passos práticos**" com 2 ou 3 itens numerados, curtos e diretos (1 frase cada: ir ao CRAS/órgão responsável, verificar/atualizar CadÚnico, levar documento com foto, CPF, comprovante de residência e renda).
+9. Termine SEMPRE com este aviso, literalmente: "{AVISO_INSTITUCIONAL}"
+10. Responda em português, em Markdown simples (negrito e listas curtas)."""
 
 
 # ---------------------------------------------------------------------------
@@ -963,7 +966,7 @@ Verifique os 4 critérios obrigatórios:
 1. Ancoragem Estrita (RIA02): A resposta ou análise inventou valores em reais, limites exatos de renda, idades, prazos, regras de acumulação de benefícios ou programas que NÃO estão escritos literalmente nos DOCUMENTOS OFICIAIS RECUPERADOS? (Se o cidadão perguntar se pode acumular dois benefícios e o documento não trouxer essa regra explícita, o assistente NÃO pode afirmar certeza sem base documental — deve explicar o que consta em cada documento e informar que a regra de acumulação não está detalhada na ficha resumida, orientando confirmação no CRAS/INSS).
 2. Fidelidade Nominal e Legal: Todos os programas apresentados citam corretamente o nome oficial, o órgão responsável e a legislação presente no documento (Lei base, Regulamentação e normas/portarias de 2024–2026 constantes na ficha)?
 3. Completude e Transparência: Algum programa claramente pertinente presente nos documentos recuperados foi omitido sem justificativa, ou deixou-se de avisar quando um critério consta como "Não especificado no documento de origem" / "Informação parcial no documento"?
-4. Acessibilidade e Limites P02: O texto está em linguagem clara/acolhedora, contém a seção "**Próximos passos práticos**" e termina literalmente com o aviso: "{AVISO_INSTITUCIONAL}"?
+4. Acessibilidade, Concisão e Limites P02: O texto está em linguagem clara, acolhedora e concisa (1 tópico curto por programa, sem repetições excessivas ou blocos longos), contém a seção "**Próximos passos práticos**" curta e termina literalmente com o aviso: "{AVISO_INSTITUCIONAL}"?
 
 Se TODOS os 4 itens estiverem plenamente atendidos sem alucinações nem omissões relevantes, marque aprovado=True (problemas_encontrados=[], instrucoes_correcao="").
 Caso haja qualquer falha, marque aprovado=False, liste cada falha objetivamente em problemas_encontrados e escreva instrucoes_correcao diretas para o Revisor corrigir."""
