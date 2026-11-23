@@ -2447,13 +2447,13 @@ html[data-night-mode="true"]:not([data-high-contrast="true"]) .response-sources 
 html[data-high-contrast="true"] .response-sources a { color: #ffed00; }
 .response-details > .benefit-cards { margin-top: 16px; }
 
-.markdown-answer { overflow-wrap: anywhere; line-height: 1.65; }
+.markdown-answer { white-space: normal; overflow-wrap: anywhere; font-size: calc(18px * var(--text-scale, 1)); line-height: 1.55; }
 .markdown-answer > :first-child { margin-top: 0; }
 .markdown-answer > :last-child { margin-bottom: 0; }
-.markdown-answer p, .markdown-answer ul, .markdown-answer ol { margin: 0.65em 0; }
-.markdown-answer ul, .markdown-answer ol { padding-left: 1.5em; }
+.markdown-answer p, .markdown-answer ul, .markdown-answer ol { margin: 0.5em 0; }
+.markdown-answer ul, .markdown-answer ol { padding-left: 1.35em; }
 .markdown-answer li + li { margin-top: 0.4em; }
-.markdown-answer h2, .markdown-answer h3, .markdown-answer h4 { font-size: 1em; margin: 1em 0 0.5em; }
+.markdown-answer h2, .markdown-answer h3, .markdown-answer h4 { font-size: 1em; margin: 0.75em 0 0.35em; }
 .markdown-answer a { color: var(--blue); text-decoration: underline; }
 .markdown-answer pre { white-space: pre-wrap; }
 .markdown-answer table { display: block; max-width: 100%; overflow-x: auto; }
