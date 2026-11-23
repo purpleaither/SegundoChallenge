@@ -7,6 +7,8 @@ STATUS_INICIADO = "iniciado"
 STATUS_EM_PROCESSAMENTO = "em_processamento"
 STATUS_SUCESSO = "sucesso"
 STATUS_SUCESSO_COM_ENCAMINHAMENTO_AJUDA = "sucesso_com_encaminhamento_ajuda"
+STATUS_DEGRADADO = "sucesso_degradado"
+STATUS_DEGRADADO_COM_ENCAMINHAMENTO_AJUDA = "sucesso_degradado_com_encaminhamento_ajuda"
 STATUS_BLOQUEADO = "bloqueado_guardrail"
 STATUS_ENCAMINHAMENTO_AJUDA = "encaminhamento_ajuda"
 STATUS_ERRO_API = "erro_api"
@@ -16,6 +18,8 @@ StatusApi = Literal[
     "em_processamento",
     "sucesso",
     "sucesso_com_encaminhamento_ajuda",
+    "sucesso_degradado",
+    "sucesso_degradado_com_encaminhamento_ajuda",
     "bloqueado_guardrail",
     "encaminhamento_ajuda",
     "erro_api",
@@ -60,6 +64,8 @@ class EstadoSistema(TypedDict):
     iteracao_reflexion: int
     historico_reflexion: Optional[List[dict]]
     modelos_utilizados: Optional[dict]
+    modo_degradado: bool
+    eventos_fallback: Optional[List[str]]
     resposta_beneficios: Optional[str]
     mensagem_apoio: Optional[str]
     resposta_final: str

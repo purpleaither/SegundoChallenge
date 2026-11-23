@@ -1,0 +1,166 @@
+> Backend histórico: o frontend atual usa `Back-end/main.py` e `/api/assistant`.
+> Veja [a integração atual](../Back-end/INTEGRACAO.md). Os serviços STT e TTS nesta pasta
+> continuam ativos separadamente; o `api.py` histórico não deve ocupar a porta 8000.
+
+# Base de Conhecimento + Recuperação e Geração RAG (G7, Semanas 2 e 3)
+
+Assistente Virtual Tira-Dúvidas: dada uma pergunta em linguagem popular, recupera os trechos
+mais relevantes de uma base curada de programas sociais e gera respostas ancoradas nas evidências
+usando uma LLM local via Ollama, comparando **LLM Pura × LLM com RAG**.
+
+## Como rodar
+
+Todos os comandos rodam **dentro da pasta `rag/`**:
+
+```bash
+cd SegundoChallenge/rag
+python3 -m venv .venv                     # uma vez só
+.venv/bin/pip install -r requirements.txt # uma vez só
+
+.venv/bin/python ingestao.py              # monta a base e o banco vetorial (rodar de novo se o CSV mudar)
+.venv/bin/python buscar.py "Estou desempregada e tenho três filhos, tenho direito a algum auxílio?"
+.venv/bin/python buscar.py --trechos "..."  # mostra os trechos crus recuperados, com score (demo técnica)
+
+```
+
+Na primeira execução, o Chroma baixa o modelo de embeddings (~80 MB). Para os comandos de geração
+(`comparar.py` e `buscar.py --llm`), basta ter o [Ollama](https://ollama.com) ativo localmente
+(`ollama serve`) com um modelo instalado (ex.: `ollama pull qwen2.5:3b` ou `ollama pull llama3.2:3b`).
+Tudo roda 100% offline, sem chave de API e sem custo.
+
+## Arquivos
+
+| Arquivo | O que faz |
+|---|---|
+| `../programas_sociais_legislacao_links_oficiais.csv` | Planilha curada pelo grupo (fonte da base) |
+| `ingestao.py` | Pipeline de ingestão: CSV → documentos → chunks → embeddings → ChromaDB |
+| `base/*.md` | Base curada: **42 documentos-fonte**, um por programa (gerados pela ingestão) |
+| `chroma_db/` | Banco vetorial persistido em disco |
+| `buscar.py` | Protótipo de recuperação e geração (`--trechos` e `--llm`) |
+| `avaliar.py` | 21 perguntas de teste com o programa esperado + 4 fora do escopo |
+| `comparar.py` | Integração com Ollama (`temperature=0.0`) e comparação **LLM Pura × RAG** |
+| `relatorio_comparacao.md` | Relatório comparativo gerado automaticamente por `comparar.py` |
+
+## Base curada
+
+- **42 documentos**, um por programa social federal da lista do MDS usada pelo CadÚnico (abr/2025).
+- Cobrem **18 órgãos** (MDS, MEC, INSS, ANEEL, ANATEL, INCRA, Ministério da Saúde…).
+- Cada documento cita sua **legislação oficial**: 30 leis/decretos distintos com link para a
+  Câmara dos Deputados / Diário Oficial da União, verificados em 2026.
+- Metadados de cada documento: programa, órgão, esfera, categoria, fonte (com página) e URL.
+
+## Arquitetura
+
+```mermaid
+flowchart LR
+    subgraph Ingestão["Ingestão (offline, ingestao.py)"]
+        A[CSV curado<br/>42 programas] --> B[Documentos .md<br/>base/]
+        B --> C[Chunking<br/>1 chunk por seção]
+        C --> D[Embeddings<br/>all-MiniLM-L6-v2]
+        D --> E[(ChromaDB<br/>126 vetores)]
+    end
+    subgraph Consulta["Consulta e Geração (buscar.py / comparar.py)"]
+        P[Pergunta do cidadão] --> Q[Expansão de fala popular<br/>dicionário de sinônimos]
+        Q --> R[Embedding da pergunta]
+        R --> S[Busca por similaridade<br/>cosseno, top-4]
+        E --> S
+        S --> G[Agrupa trechos<br/>por programa]
+        G --> T[Ficha integral do programa<br/>O que é + Quem pode + Legislação]
+        T --> U[Ollama LLM local<br/>temperature=0.0 + Prompt RAG estrito]
+        U --> V[Resposta ancorada RIA02<br/>ou Abstenção ativa RIA07]
+    end
+```
+
+### Pipeline de ingestão
+
+1. **Curadoria:** o grupo levantou os programas, os critérios e a legislação vigente na planilha CSV.
+2. **Documentos:** `ingestao.py` transforma cada linha num `.md` com cabeçalho de metadados e três
+   seções (*O que é*, *Quem pode*, *Legislação*).
+3. **Chunking:** cada documento é quebrado nas seções `##`.
+4. **Embeddings + indexação:** o Chroma gera os vetores e grava os trechos com seus metadados em
+   `chroma_db/`. A coleção é recriada a cada ingestão, então atualizar a base é só editar o CSV e
+   rodar de novo (mitigação MR05).
+
+## Estratégia de chunking
+
+- **Por seção semântica**, não por tamanho fixo: cada documento vira 3 chunks (42 × 3 = **126 chunks**).
+- Motivo: as perguntas costumam mirar um aspecto ("quem pode?", "qual a lei?"). Um chunk por
+  seção devolve exatamente essa parte, e os documentos já são curtos (~100–200 palavras), então
+  não há o que cortar.
+- Cada chunk começa com **o nome do programa e da seção** (ex.: "Bolsa Família - Quem pode"). Assim,
+  o trecho continua compreensível sozinho e o nome do programa entra no embedding.
+- Os metadados (programa, órgão, fonte, URL) acompanham cada chunk, para citar a fonte na resposta.
+
+## Estratégia de embeddings e banco vetorial
+
+- **Banco vetorial:** ChromaDB em modo persistente local, com índice HNSW e **distância de cosseno**.
+  Instala com `pip` e não precisa de servidor.
+- **Embeddings:** modelo padrão do Chroma, `all-MiniLM-L6-v2` (384 dimensões, roda em CPU via ONNX).
+  Foi escolhido por ser gratuito, leve e funcionar sem configuração.
+- **Expansão de consulta:** como o modelo foi treinado principalmente em inglês, antes da busca a
+  pergunta recebe termos oficiais equivalentes à fala popular (ex.: "botijão" → "auxílio gás GLP",
+  "roça" → "rural agricultura familiar"). Isso atende ao RIA01.
+
+## Resultados (`avaliar.py`)
+
+A busca pede 16 trechos ao banco e agrupa por programa, para que o mesmo programa não ocupe várias
+posições (antes, as 3 seções de um único programa podiam tomar o top-4). A resposta é montada por
+um modelo de texto fixo a partir do documento de cada programa, sem LLM.
+
+- **Acerto@4: 19/21 (90%)**: o programa esperado aparece entre os 4 programas retornados.
+- Erros: "quero fazer faculdade…" (trouxe Sisu e PNAES, que também são pertinentes, mas não o FIES
+  Social) e "cesta de comida… fome" (não trouxe a Ação de Distribuição de Alimentos).
+
+## Comparação LLM Pura × RAG (`comparar.py` — Semana 3)
+
+O módulo `comparar.py` conecta a recuperação no ChromaDB a uma LLM local via API HTTP do **Ollama**
+(`http://localhost:11434/api/chat`, usando apenas `urllib.request` da biblioteca padrão e
+`temperature=0.0` conforme mitigação **MR01**).
+
+Dois modos são executados e avaliados lado a lado:
+
+1. **LLM Pura (`responder_llm_pura`)**: recebe apenas a pergunta e o papel do assistente, respondendo
+   com o conhecimento paramétrico do modelo.
+2. **LLM com RAG (`responder_rag`)**: recebe os documentos completos dos `TOP_K=4` programas
+   recuperados de `base/*.md` e instruções estritas para:
+   - **Ancoragem estrita (RIA02)**: usar exclusivamente os dados da base homologada, citando órgão
+     responsável, lei base, regulamentação e atualizações normativas de 2024–2026 (ex.: *Gás do Povo*
+     pela Lei nº 15.348/2026, *Luz do Povo* pela Lei nº 15.235/2025, biometria do BPC pela Portaria
+     Conjunta MDS/INSS nº 36/2026);
+   - **Transparência sobre lacunas**: informar quando o documento oficial traz critérios parciais ou
+     não especificados, sem inventar regras;
+   - **Abstenção ativa e limites institucionais (RIA07 / P02)**: recusar perguntas fora do escopo
+     socioassistencial (mesmo que o banco vetorial devolva trechos com score ~0,50) e recusar pedidos
+     operacionais proibidos (consultar CPF/CadÚnico, cadastrar ou aprovar benefício).
+
+O resultado detalhado com métricas agregadas e respostas lado a lado é salvo em
+`relatorio_comparacao.md`.
+
+## Limitações e próximos passos
+
+- **Abstenção no retriever vs. na geração:** o modelo de embeddings `all-MiniLM-L6-v2` ainda atribui
+  scores até 0,56 a perguntas fora de escopo ("bolo de cenoura"), mas o prompt de RAG estrito em
+  `comparar.py` resolve a **abstenção ativa (RIA07)** na camada de geração ao inspecionar a
+  pertinência temática antes de usar os trechos.
+- A base ainda não tem **documentos exigidos** nem **unidades de atendimento** (RF04/RF05), nem
+  programas **distritais** (SEDES-DF, CODHAB, SEEDF, como o Prato Cheio).
+
+## API usada pelo frontend
+
+O frontend encaminha `/api/perguntar` para a API Python na porta 8000. Os serviços
+STT (8002) e TTS (8001) não substituem essa API. Uma resposta 502 do proxy geralmente
+indica que a API Python não foi iniciada ou ainda está montando o índice.
+
+Com o ambiente Python instalado e Ollama ativo, execute em `rag/`:
+
+```sh
+ollama pull bge-m3
+.venv/bin/uvicorn api:app --host 127.0.0.1 --port 8000
+```
+
+A API escolhida usa a base curada em `base/`, embeddings `bge-m3` e respostas por
+modelo de texto fixo. Não é necessário baixar uma LLM adicional para essa rota.
+A primeira inicialização indexa a base antes de aceitar requisições; aguarde
+`Application startup complete`. Verifique `http://127.0.0.1:8000/api/saude` e
+`http://localhost:3000/api/saude`. Ambos devem retornar `status: ok`.
+Mantenha os processos do backend e do frontend em execução durante o uso.

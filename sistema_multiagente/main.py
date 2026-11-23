@@ -10,14 +10,28 @@ PASTA_ATUAL = Path(__file__).resolve().parent
 if str(PASTA_ATUAL) not in sys.path:
     sys.path.insert(0, str(PASTA_ATUAL))
 
-from config import TIER_POR_AGENTE
-from graph import executar_fluxo
-from schemas import (
-    STATUS_ENCAMINHAMENTO_AJUDA,
-    STATUS_ERRO_API,
-    STATUS_SUCESSO_COM_ENCAMINHAMENTO_AJUDA,
-    EstadoSistema,
-)
+if __package__:
+    from .config import TIER_POR_AGENTE
+    from .graph import executar_fluxo
+    from .schemas import (
+        STATUS_DEGRADADO,
+        STATUS_DEGRADADO_COM_ENCAMINHAMENTO_AJUDA,
+        STATUS_ENCAMINHAMENTO_AJUDA,
+        STATUS_ERRO_API,
+        STATUS_SUCESSO_COM_ENCAMINHAMENTO_AJUDA,
+        EstadoSistema,
+    )
+else:
+    from config import TIER_POR_AGENTE
+    from graph import executar_fluxo
+    from schemas import (
+        STATUS_DEGRADADO,
+        STATUS_DEGRADADO_COM_ENCAMINHAMENTO_AJUDA,
+        STATUS_ENCAMINHAMENTO_AJUDA,
+        STATUS_ERRO_API,
+        STATUS_SUCESSO_COM_ENCAMINHAMENTO_AJUDA,
+        EstadoSistema,
+    )
 
 
 def _resumir_documentos(documentos: list[str] | None) -> list[str]:
@@ -42,14 +56,21 @@ def _resolver_tier_exibicao(chave_agente: str) -> str:
 
 
 def _rotulo_cabecalho_debug(estado: EstadoSistema) -> str:
-    """Resolve o rótulo de exibição no cabeçalho do modo --debug distinguindo encaminhamento de bloqueio."""
+    """Resolve o rótulo de exibição no cabeçalho do modo --debug distinguindo encaminhamento e degradação."""
     padrao = estado.get("padrao_execucao")
-    tem_apoio = bool(estado.get("categoria_encaminhamento"))
-    if padrao:
-        if tem_apoio:
-            return f"{padrao.upper()} + ENCAMINHAMENTO DE AJUDA"
-        return padrao.upper()
     status_api = estado.get("status_api")
+    tem_apoio = bool(estado.get("categoria_encaminhamento"))
+    eh_degradado = bool(estado.get("modo_degradado")) or status_api in (
+        STATUS_DEGRADADO,
+        STATUS_DEGRADADO_COM_ENCAMINHAMENTO_AJUDA,
+    )
+    if padrao:
+        partes = [padrao.upper()]
+        if eh_degradado:
+            partes.append("MODO DEGRADADO")
+        if tem_apoio:
+            partes.append("ENCAMINHAMENTO DE AJUDA")
+        return " + ".join(partes)
     if status_api == STATUS_ENCAMINHAMENTO_AJUDA:
         return "ENCAMINHAMENTO DE AJUDA"
     if status_api == STATUS_ERRO_API:
@@ -65,6 +86,7 @@ def exibir_debug(estado: EstadoSistema) -> None:
     eh_encaminhamento = bool(estado.get("categoria_encaminhamento")) or status_api in (
         STATUS_ENCAMINHAMENTO_AJUDA,
         STATUS_SUCESSO_COM_ENCAMINHAMENTO_AJUDA,
+        STATUS_DEGRADADO_COM_ENCAMINHAMENTO_AJUDA,
     )
     rotulo_cabecalho = _rotulo_cabecalho_debug(estado)
 
@@ -73,6 +95,8 @@ def exibir_debug(estado: EstadoSistema) -> None:
     print(sep)
     print(f"Mensagem do usuário : {estado.get('mensagem_usuario')}")
     print(f"Status da API       : {status_api}")
+    if estado.get("modo_degradado"):
+        print("Modo degradado      : Sim (contingência/resiliência acionada)")
 
     modelos = estado.get("modelos_utilizados") or {}
     if modelos:
@@ -80,6 +104,12 @@ def exibir_debug(estado: EstadoSistema) -> None:
         for ag, mod in modelos.items():
             tier = _resolver_tier_exibicao(ag)
             print(f"    - {ag:24s} -> {mod} (tier: {tier})")
+
+    eventos_fallback = estado.get("eventos_fallback") or []
+    if eventos_fallback:
+        print("\n[EVENTOS DE FALLBACK / RESILIÊNCIA]")
+        for evento in eventos_fallback:
+            print(f"    - {evento}")
 
     print(f"\n[1] AGENTE GUARDRAIL + SELETOR DE PADRÃO")
     print(f"    dentro_do_escopo         : {estado.get('dentro_do_escopo')}")

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import asyncio
 import sqlite3
 import sys
 from contextlib import closing
@@ -13,6 +14,8 @@ from uuid import UUID, uuid4
 from fastapi import FastAPI, HTTPException, Query, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
+from starlette.concurrency import run_in_threadpool
+from multiagent_service import configured, execute_pipeline, response_from_state, PipelineUnavailable, PipelineBusy
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT / "Dados-RAG"))
@@ -65,6 +68,28 @@ class AssistantResponse(BaseModel):
     answer: str
     benefits: list[Benefit]
     notice: str
+
+
+class SourceReference(BaseModel):
+    id: str
+    title: str
+    url: str
+
+
+class MultiagentResponse(AssistantResponse):
+    sources: list[SourceReference] = Field(default_factory=list)
+    support_message: str | None = None
+    speech_text: str
+    status: Literal[
+        "sucesso",
+        "sucesso_com_encaminhamento_ajuda",
+        "sucesso_degradado",
+        "sucesso_degradado_com_encaminhamento_ajuda",
+        "encaminhamento_ajuda",
+        "bloqueado_guardrail",
+        "erro_api",
+    ]
+    execution_pattern: Literal["padrao", "rewoo", "reflexion"] | None = None
 
 
 class ConversationMessage(BaseModel):
@@ -406,3 +431,27 @@ def chat(request: ChatRequest) -> ChatResponse:
         audio_remaining=quota.remaining,
         audio_resets_at=quota.resets_at or "",
     )
+
+
+@app.get("/api/assistant/status")
+def assistant_status():
+    return {"mode": "multiagent", "configured": configured(), "provider": "gemini"}
+
+
+@app.post("/api/orientar", response_model=MultiagentResponse)
+async def orient(request: AssistantRequest):
+    question = request.question.strip()
+    if not question:
+        raise HTTPException(422, "Escreva uma pergunta para continuar.")
+    try:
+        state = await asyncio.wait_for(run_in_threadpool(execute_pipeline, question), timeout=110)
+        result = response_from_state(state, load_programs())
+    except PipelineBusy:
+        raise HTTPException(429, "O assistente está atendendo outra solicitação. Tente novamente em instantes.", headers={"Retry-After":"2"})
+    except PipelineUnavailable as error:
+        raise HTTPException(503, str(error))
+    except TimeoutError:
+        raise HTTPException(504, "A orientação demorou mais que o esperado. Tente novamente em instantes.")
+    # Provider failures retain a separate support message if the guardrail identified one.
+    # No fallback to a different pipeline or fabricated successful answer is performed.
+    return MultiagentResponse(**result)

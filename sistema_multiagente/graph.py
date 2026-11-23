@@ -12,33 +12,59 @@ load_dotenv(PASTA_ATUAL / ".env")
 
 from langgraph.graph import END, START, StateGraph
 
-from agents import (
-    MAX_ITERACOES_REFLEXION,
-    STATUS_BLOQUEADO,
-    STATUS_ENCAMINHAMENTO_AJUDA,
-    STATUS_ERRO_API,
-    agente_analista_elegibilidade,
-    agente_comunicador,
-    agente_extrator_perfil,
-    agente_guardrail,
-    agente_reflexion_critico,
-    agente_reflexion_revisor,
-    agente_retriever,
-    agente_rewoo_planner,
-    agente_rewoo_solver,
-    agente_rewoo_worker,
-    consolidar_encaminhamento_ajuda,
-)
-from schemas import STATUS_INICIADO, EstadoSistema
+if __package__:
+    from .agents import (
+        MAX_ITERACOES_REFLEXION,
+        STATUS_BLOQUEADO,
+        STATUS_DEGRADADO,
+        STATUS_ENCAMINHAMENTO_AJUDA,
+        STATUS_ERRO_API,
+        agente_analista_elegibilidade,
+        agente_comunicador,
+        agente_extrator_perfil,
+        agente_fallback_rag,
+        agente_guardrail,
+        agente_reflexion_critico,
+        agente_reflexion_revisor,
+        agente_retriever,
+        agente_rewoo_planner,
+        agente_rewoo_solver,
+        agente_rewoo_worker,
+        consolidar_encaminhamento_ajuda,
+    )
+    from .schemas import STATUS_INICIADO, EstadoSistema
+else:
+    from agents import (
+        MAX_ITERACOES_REFLEXION,
+        STATUS_BLOQUEADO,
+        STATUS_DEGRADADO,
+        STATUS_ENCAMINHAMENTO_AJUDA,
+        STATUS_ERRO_API,
+        agente_analista_elegibilidade,
+        agente_comunicador,
+        agente_extrator_perfil,
+        agente_fallback_rag,
+        agente_guardrail,
+        agente_reflexion_critico,
+        agente_reflexion_revisor,
+        agente_retriever,
+        agente_rewoo_planner,
+        agente_rewoo_solver,
+        agente_rewoo_worker,
+        consolidar_encaminhamento_ajuda,
+    )
+    from schemas import STATUS_INICIADO, EstadoSistema
 
 
 def rotear_pos_guardrail(state: EstadoSistema) -> str:
-    """Encerra se não houver escopo de benefícios ou erro; caso válido, desvia entre ReWOO e pipeline base."""
+    """Encerra se fora de escopo/erro; em modo degradado vai direto ao RAG; senão segue ReWOO ou Padrão."""
     if (
         not state.get("dentro_do_escopo")
         or state.get("status_api") in (STATUS_ERRO_API, STATUS_BLOQUEADO, STATUS_ENCAMINHAMENTO_AJUDA)
     ):
         return END
+    if state.get("modo_degradado"):
+        return "retriever"
     if state.get("padrao_execucao") == "rewoo":
         return "rewoo_planner"
     return "extrator_perfil"
@@ -54,18 +80,32 @@ def _rotear_ou_encerrar(proximo_no: str):
     return _roteador
 
 
+def _rotear_ou_degradar(proximo_no: str):
+    """Encaminha ao próximo nó, ou ao fallback determinístico RAG em modo degradado, ou ao consolidador em erro."""
+    def _roteador(state: EstadoSistema) -> str:
+        if state.get("status_api") == STATUS_ERRO_API:
+            return "consolidar_encaminhamento_ajuda"
+        if state.get("modo_degradado"):
+            return "fallback_rag"
+        return proximo_no
+
+    return _roteador
+
+
 def rotear_pos_comunicador(state: EstadoSistema) -> str:
-    """No padrão 'padrao' consolida saída; no padrão 'reflexion' encaminha para auditoria do Crítico."""
+    """No padrão 'padrao' consolida saída; em modo degradado usa fallback RAG; no 'reflexion' vai ao Crítico."""
     if state.get("status_api") == STATUS_ERRO_API:
         return "consolidar_encaminhamento_ajuda"
+    if state.get("modo_degradado"):
+        return "fallback_rag"
     if state.get("padrao_execucao") == "reflexion":
         return "reflexion_critico"
     return "consolidar_encaminhamento_ajuda"
 
 
 def rotear_pos_critico(state: EstadoSistema) -> str:
-    """Consolida saída se aprovado pelo Crítico, erro de API ou limite atingido; senão revisa."""
-    if state.get("status_api") == STATUS_ERRO_API:
+    """Consolida saída se aprovado, degradado, erro ou limite atingido; senão revisa."""
+    if state.get("status_api") in (STATUS_ERRO_API, STATUS_DEGRADADO) or state.get("modo_degradado"):
         return "consolidar_encaminhamento_ajuda"
     critica = state.get("critica_reflexion") or {}
     iteracao = int(state.get("iteracao_reflexion") or 0)
@@ -74,10 +114,33 @@ def rotear_pos_critico(state: EstadoSistema) -> str:
     return "reflexion_revisor"
 
 
+def rotear_pos_revisor(state: EstadoSistema) -> str:
+    """Retorna ao Crítico ou consolida imediatamente em erro/modo degradado preservando o rascunho."""
+    if state.get("status_api") in (STATUS_ERRO_API, STATUS_DEGRADADO) or state.get("modo_degradado"):
+        return "consolidar_encaminhamento_ajuda"
+    return "reflexion_critico"
+
+
+def rotear_pos_rewoo_planner(state: EstadoSistema) -> str:
+    """Segue para o Worker ou aplica downgrade limpo para o fluxo 'padrao' se o Planner falhou."""
+    if state.get("status_api") == STATUS_ERRO_API:
+        return "consolidar_encaminhamento_ajuda"
+    if state.get("padrao_execucao") == "padrao":
+        return "extrator_perfil"
+    return "rewoo_worker"
+
+
+def rotear_pos_rewoo_solver(state: EstadoSistema) -> str:
+    """Encaminha ao fallback determinístico RAG se o Solver degradou; caso contrário consolida."""
+    if state.get("modo_degradado") and state.get("status_api") != STATUS_ERRO_API:
+        return "fallback_rag"
+    return "consolidar_encaminhamento_ajuda"
+
+
 def construir_grafo():
     workflow = StateGraph(EstadoSistema)
 
-    # 1. Registro dos nós (Guardrail/Seletor + Padrão + ReWOO + Reflexion + Consolidador de Apoio)
+    # 1. Registro dos nós (Guardrail/Seletor + Padrão + ReWOO + Reflexion + Fallback RAG + Consolidador)
     workflow.add_node("guardrail", agente_guardrail)
     workflow.add_node("extrator_perfil", agente_extrator_perfil)
     workflow.add_node("retriever", agente_retriever)
@@ -90,6 +153,7 @@ def construir_grafo():
 
     workflow.add_node("reflexion_critico", agente_reflexion_critico)
     workflow.add_node("reflexion_revisor", agente_reflexion_revisor)
+    workflow.add_node("fallback_rag", agente_fallback_rag)
     workflow.add_node("consolidar_encaminhamento_ajuda", consolidar_encaminhamento_ajuda)
 
     # 2. Entrada e roteamento dinâmico pós-Guardrail
@@ -99,12 +163,13 @@ def construir_grafo():
         rotear_pos_guardrail,
         {
             "extrator_perfil": "extrator_perfil",
+            "retriever": "retriever",
             "rewoo_planner": "rewoo_planner",
             END: END,
         },
     )
 
-    # 3. Caminho Padrão + Base do Reflexion
+    # 3. Caminho Padrão + Base do Reflexion + Degradação Graciosa
     workflow.add_conditional_edges(
         "extrator_perfil",
         _rotear_ou_encerrar("retriever"),
@@ -112,27 +177,33 @@ def construir_grafo():
     )
     workflow.add_conditional_edges(
         "retriever",
-        _rotear_ou_encerrar("analista_elegibilidade"),
+        _rotear_ou_degradar("analista_elegibilidade"),
         {
             "analista_elegibilidade": "analista_elegibilidade",
+            "fallback_rag": "fallback_rag",
             "consolidar_encaminhamento_ajuda": "consolidar_encaminhamento_ajuda",
         },
     )
     workflow.add_conditional_edges(
         "analista_elegibilidade",
-        _rotear_ou_encerrar("comunicador"),
-        {"comunicador": "comunicador", "consolidar_encaminhamento_ajuda": "consolidar_encaminhamento_ajuda"},
+        _rotear_ou_degradar("comunicador"),
+        {
+            "comunicador": "comunicador",
+            "fallback_rag": "fallback_rag",
+            "consolidar_encaminhamento_ajuda": "consolidar_encaminhamento_ajuda",
+        },
     )
     workflow.add_conditional_edges(
         "comunicador",
         rotear_pos_comunicador,
         {
             "reflexion_critico": "reflexion_critico",
+            "fallback_rag": "fallback_rag",
             "consolidar_encaminhamento_ajuda": "consolidar_encaminhamento_ajuda",
         },
     )
 
-    # 4. Ciclo Reflexion (Crítico <-> Revisor com limite MAX_ITERACOES_REFLEXION)
+    # 4. Ciclo Reflexion (Crítico <-> Revisor com limite MAX_ITERACOES_REFLEXION e preservação de rascunho)
     workflow.add_conditional_edges(
         "reflexion_critico",
         rotear_pos_critico,
@@ -143,22 +214,34 @@ def construir_grafo():
     )
     workflow.add_conditional_edges(
         "reflexion_revisor",
-        _rotear_ou_encerrar("reflexion_critico"),
+        rotear_pos_revisor,
         {"reflexion_critico": "reflexion_critico", "consolidar_encaminhamento_ajuda": "consolidar_encaminhamento_ajuda"},
     )
 
-    # 5. Caminho ReWOO (Planner -> Worker -> Solver -> Consolidador -> END)
+    # 5. Caminho ReWOO (Planner -> Worker -> Solver -> Consolidador, com downgrade e fallback RAG)
     workflow.add_conditional_edges(
         "rewoo_planner",
-        _rotear_ou_encerrar("rewoo_worker"),
-        {"rewoo_worker": "rewoo_worker", "consolidar_encaminhamento_ajuda": "consolidar_encaminhamento_ajuda"},
+        rotear_pos_rewoo_planner,
+        {
+            "rewoo_worker": "rewoo_worker",
+            "extrator_perfil": "extrator_perfil",
+            "consolidar_encaminhamento_ajuda": "consolidar_encaminhamento_ajuda",
+        },
     )
     workflow.add_conditional_edges(
         "rewoo_worker",
         _rotear_ou_encerrar("rewoo_solver"),
         {"rewoo_solver": "rewoo_solver", "consolidar_encaminhamento_ajuda": "consolidar_encaminhamento_ajuda"},
     )
-    workflow.add_edge("rewoo_solver", "consolidar_encaminhamento_ajuda")
+    workflow.add_conditional_edges(
+        "rewoo_solver",
+        rotear_pos_rewoo_solver,
+        {
+            "fallback_rag": "fallback_rag",
+            "consolidar_encaminhamento_ajuda": "consolidar_encaminhamento_ajuda",
+        },
+    )
+    workflow.add_edge("fallback_rag", "consolidar_encaminhamento_ajuda")
     workflow.add_edge("consolidar_encaminhamento_ajuda", END)
 
     return workflow.compile()
@@ -185,6 +268,8 @@ def estado_inicial(mensagem: str) -> EstadoSistema:
         "iteracao_reflexion": 0,
         "historico_reflexion": [],
         "modelos_utilizados": {},
+        "modo_degradado": False,
+        "eventos_fallback": [],
         "resposta_beneficios": None,
         "mensagem_apoio": None,
         "resposta_final": "",

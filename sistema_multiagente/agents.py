@@ -15,34 +15,82 @@ if str(PASTA_ATUAL) not in sys.path:
     sys.path.insert(0, str(PASTA_ATUAL))
 load_dotenv(PASTA_ATUAL / ".env")
 
-from config import invocar_estruturado, invocar_texto
-from rag import (
-    contem_dados_ou_pedido_p02,
-    detectar_situacao_critica_deterministica,
-    eh_pedido_ilicito_explicito,
-    executar_buscas_rewoo,
-    inferir_categoria_sensivel_fallback,
-    neutralizar_trechos_criticos_para_extracao,
-    possui_contexto_socioeconomico,
-    recuperar_documentos_com_perfil,
-    violacao_operacional_p02,
-)
-from schemas import (
-    CATEGORIAS_ENCAMINHAMENTO_AJUDA,
-    STATUS_BLOQUEADO,
-    STATUS_EM_PROCESSAMENTO,
-    STATUS_ENCAMINHAMENTO_AJUDA,
-    STATUS_ERRO_API,
-    STATUS_SUCESSO,
-    STATUS_SUCESSO_COM_ENCAMINHAMENTO_AJUDA,
-    AnaliseElegibilidade,
-    AvaliacaoCriticaReflexion,
-    CategoriaEncaminhamentoAjuda,
-    EstadoSistema,
-    PerfilSocioeconomico,
-    PlanoReWOO,
-    ValidacaoEscopo,
-)
+if __package__:
+    from .config import (
+        eh_modelo_secundario_local,
+        invocar_estruturado,
+        invocar_texto,
+        sanitizar_mensagem_erro,
+    )
+    from .rag import (
+        compor_resposta_deterministica_rag,
+        contem_dados_ou_pedido_p02,
+        detectar_situacao_critica_deterministica,
+        eh_indicio_fraude_ou_ilicito,
+        eh_pedido_ilicito_explicito,
+        executar_buscas_rewoo,
+        inferir_categoria_sensivel_fallback,
+        neutralizar_trechos_criticos_para_extracao,
+        possui_contexto_socioeconomico,
+        recuperar_documentos_com_perfil,
+        violacao_operacional_p02,
+    )
+    from .schemas import (
+        CATEGORIAS_ENCAMINHAMENTO_AJUDA,
+        STATUS_BLOQUEADO,
+        STATUS_DEGRADADO,
+        STATUS_DEGRADADO_COM_ENCAMINHAMENTO_AJUDA,
+        STATUS_EM_PROCESSAMENTO,
+        STATUS_ENCAMINHAMENTO_AJUDA,
+        STATUS_ERRO_API,
+        STATUS_SUCESSO,
+        STATUS_SUCESSO_COM_ENCAMINHAMENTO_AJUDA,
+        AnaliseElegibilidade,
+        AvaliacaoCriticaReflexion,
+        CategoriaEncaminhamentoAjuda,
+        EstadoSistema,
+        PerfilSocioeconomico,
+        PlanoReWOO,
+        ValidacaoEscopo,
+    )
+else:
+    from config import (
+        eh_modelo_secundario_local,
+        invocar_estruturado,
+        invocar_texto,
+        sanitizar_mensagem_erro,
+    )
+    from rag import (
+        compor_resposta_deterministica_rag,
+        contem_dados_ou_pedido_p02,
+        detectar_situacao_critica_deterministica,
+        eh_indicio_fraude_ou_ilicito,
+        eh_pedido_ilicito_explicito,
+        executar_buscas_rewoo,
+        inferir_categoria_sensivel_fallback,
+        neutralizar_trechos_criticos_para_extracao,
+        possui_contexto_socioeconomico,
+        recuperar_documentos_com_perfil,
+        violacao_operacional_p02,
+    )
+    from schemas import (
+        CATEGORIAS_ENCAMINHAMENTO_AJUDA,
+        STATUS_BLOQUEADO,
+        STATUS_DEGRADADO,
+        STATUS_DEGRADADO_COM_ENCAMINHAMENTO_AJUDA,
+        STATUS_EM_PROCESSAMENTO,
+        STATUS_ENCAMINHAMENTO_AJUDA,
+        STATUS_ERRO_API,
+        STATUS_SUCESSO,
+        STATUS_SUCESSO_COM_ENCAMINHAMENTO_AJUDA,
+        AnaliseElegibilidade,
+        AvaliacaoCriticaReflexion,
+        CategoriaEncaminhamentoAjuda,
+        EstadoSistema,
+        PerfilSocioeconomico,
+        PlanoReWOO,
+        ValidacaoEscopo,
+    )
 
 MAX_ITERACOES_REFLEXION = 2
 
@@ -148,10 +196,10 @@ _MOTIVOS_DETERMINISTICOS_AJUDA: dict[CategoriaEncaminhamentoAjuda, str] = {
 
 
 def _erro_api(agente: str, erro: Exception) -> dict:
-    """Converte uma falha de chamada ao LLM/RAG em atualização de estado fail-closed."""
+    """Converte uma falha de chamada ao LLM/RAG em atualização de estado fail-closed sanitizada."""
     return {
         "status_api": STATUS_ERRO_API,
-        "motivo_rejeicao": f"Falha no agente '{agente}': {type(erro).__name__}: {str(erro)[:200]}",
+        "motivo_rejeicao": f"Falha no agente '{agente}': {sanitizar_mensagem_erro(erro)}",
         "resposta_final": (
             "Desculpe, não consegui concluir a sua orientação agora por uma falha técnica no serviço de "
             "inteligência artificial. Tente novamente em alguns minutos. Se precisar de ajuda imediata, "
@@ -165,6 +213,13 @@ def _registrar_modelo(state: EstadoSistema, agente: str, modelo: str) -> dict[st
     atuais = dict(state.get("modelos_utilizados") or {})
     atuais[agente] = modelo
     return atuais
+
+
+def _registrar_evento_fallback(state: EstadoSistema, evento: str) -> list[str]:
+    """Registra evento sanitizado de contingência/degradação sem armazenar dados sensíveis do cidadão."""
+    eventos = list(state.get("eventos_fallback") or [])
+    eventos.append(evento)
+    return eventos
 
 
 def _garantir_aviso_institucional(texto: str) -> str:
@@ -206,14 +261,17 @@ REGRAS_ANALISE_RIA02 = """Ancoragem estrita (RIA02) — regras obrigatórias de 
 
 REGRAS_COMUNICACAO_P02 = f"""Regras obrigatórias de comunicação ao cidadão (linguagem simples + P02):
 1. Tom de voz: acolhedor, empático, respeitoso, claro e direto. Frases curtas, sem jargão burocrático. Trate a pessoa por "você".
-2. Use APENAS os programas e informações ancorados nos DOCUMENTOS OFICIAIS fornecidos (RIA02). Não invente programas, valores, limites de renda, prazos, regras de acumulação ou leis.
-3. Apresente apenas os programas com status "elegivel", "potencialmente_elegivel" ou "criterio_nao_especificado_na_base". Não apresente os "inelegivel".
-4. Para cada programa apresentado, traduza o "juridiquês" para o que ele significa na prática, mantendo explicitamente: o nome oficial do programa, o órgão responsável e a legislação citada no documento (lei base, regulamentação e atualização recente de 2024–2026, quando houver).
-5. Transparência: quando um critério (ou regra específica como acumulação de benefícios) constar como não especificado ou parcial no documento oficial, diga com clareza que a base resumida não traz esse detalhe e que a confirmação deve ser feita presencialmente no CRAS ou órgão responsável.
-6. Se nenhum programa for pertinente, diga isso com honestidade e oriente a procurar o CRAS para uma avaliação completa.
-7. Inclua obrigatoriamente uma seção intitulada "**Próximos passos práticos**", numerada, com ações concretas (ex.: ir ao CRAS/órgão responsável, verificar/atualizar CadÚnico, levar documento com foto, CPF, comprovante de residência e renda).
-8. Termine SEMPRE com este aviso, literalmente: "{AVISO_INSTITUCIONAL}"
-9. Responda em português, em Markdown simples (títulos curtos, listas)."""
+2. Concisão e leitura fácil: escreva uma resposta curta e amigável, fácil de ler na tela sem precisar rolar muito (busque ficar em torno de 150 a 250 palavras no fluxo padrão, expandindo apenas o necessário quando houver muitos programas pertinentes). Evite introduções longas, repetições e blocos extensos.
+3. Ancoragem estrita (RIA02): use APENAS os programas e informações presentes nos DOCUMENTOS OFICIAIS fornecidos. Não invente programas, valores, limites de renda, prazos, regras de acumulação ou leis.
+4. Seleção: apresente apenas os programas com status "elegivel", "potencialmente_elegivel" ou "criterio_nao_especificado_na_base". Não apresente os "inelegivel".
+5. Formato enxuto por programa: abra com 1 frase curta e acolhedora e apresente cada programa em UM único item de lista curto (2 a 4 linhas), sem subtítulos nem múltiplos subtópicos por programa, seguindo o modelo:
+   - **Nome oficial do programa** (Órgão responsável): tradução simples do que oferece, para quem é e o que falta confirmar. *Base legal: lei base, regulamentação e atualização recente de 2024–2026 citada na ficha.*
+   Preserve todas as informações essenciais (nome oficial, nome atual se houver, órgão, critérios relevantes e legislação citada), mas de forma condensada e sem colar URLs longas no texto.
+6. Transparência sem repetição: quando critérios (ou regras como acumulação de benefícios) constarem como não especificados ou parciais no documento oficial, avise com clareza que a base resumida não traz esse detalhe e que a confirmação deve ser feita no CRAS ou órgão responsável — se isso valer para vários programas, prefira uma nota breve única após a lista em vez de repetir a mesma frase em cada item.
+7. Se nenhum programa for pertinente, diga isso com honestidade em 1 ou 2 frases e oriente a procurar o CRAS para uma avaliação completa.
+8. Inclua obrigatoriamente a seção "**Próximos passos práticos**" com 2 ou 3 itens numerados, curtos e diretos (1 frase cada: ir ao CRAS/órgão responsável, verificar/atualizar CadÚnico, levar documento com foto, CPF, comprovante de residência e renda).
+9. Termine SEMPRE com este aviso, literalmente: "{AVISO_INSTITUCIONAL}"
+10. Responda em português, em Markdown simples (negrito e listas curtas)."""
 
 
 # ---------------------------------------------------------------------------
@@ -437,26 +495,72 @@ def agente_guardrail(state: EstadoSistema) -> dict:
             "guardrail", ValidacaoEscopo, PROMPT_GUARDRAIL, f"Mensagem do cidadão:\n{mensagem}"
         )
         modelos = _registrar_modelo(state, "guardrail", modelo_usado)
-    except Exception as erro:  # fail-closed com salvaguarda para relatos sensíveis
+    except Exception as erro:  # fail-closed com salvaguarda para relatos sensíveis e fallback RAG seguro
         cat_fallback = _combinar_categorias_apoio(categoria_det, indicio_sensivel)
-        if cat_fallback is not None and (categoria_det is not None or _eh_excecao_seguranca_llm(erro)):
+        suspeita_fraude = eh_indicio_fraude_ou_ilicito(mensagem)
+        erro_sanitizado = sanitizar_mensagem_erro(erro)
+
+        # Jamais orientar benefícios se houver suspeita de fraude/ilícito sob queda do LLM
+        if suspeita_fraude:
+            cat_fraude = _combinar_categorias_apoio(cat_fallback, "codigo_penal") or "codigo_penal"
+            return _resposta_estado_encaminhamento(
+                state=state,
+                categoria=cat_fraude,
+                motivo=_MOTIVOS_DETERMINISTICOS_AJUDA[cat_fraude],
+                modelo_registrado="fallback_deterministico_seguranca",
+            )
+
+        # Salvaguarda de apoio para categoria explícita OU indício sensível (mesmo em 503/429)
+        if cat_fallback is not None:
             if tem_contexto_socio and not tem_violacao_p02:
-                return {
+                eh_safety = _eh_excecao_seguranca_llm(erro)
+                update_apoio = {
                     "dentro_do_escopo": True,
                     "motivo_rejeicao": _MOTIVOS_DETERMINISTICOS_AJUDA[cat_fallback],
                     "categoria_encaminhamento": cat_fallback,
                     "padrao_execucao": "padrao",
-                    "justificativa_padrao": "Fluxo padrão ativado em contingência para preservar orientação de benefícios.",
+                    "justificativa_padrao": (
+                        "Fluxo padrão ativado em contingência para preservar orientação de benefícios."
+                        if eh_safety
+                        else "Modo degradado ativado: busca direta nas fichas oficiais preservando apoio."
+                    ),
                     "modelos_utilizados": _registrar_modelo(state, "guardrail", "fallback_deterministico_seguranca"),
                     "mensagem_apoio": _montar_resposta_encaminhamento(cat_fallback, mensagem),
                     "status_api": STATUS_EM_PROCESSAMENTO,
                 }
+                if not eh_safety:
+                    update_apoio["modo_degradado"] = True
+                    update_apoio["eventos_fallback"] = _registrar_evento_fallback(
+                        state,
+                        f"guardrail: indisponibilidade LLM ({erro_sanitizado}); contingência RAG com apoio preservado",
+                    )
+                return update_apoio
             return _resposta_estado_encaminhamento(
                 state=state,
                 categoria=cat_fallback,
                 motivo=_MOTIVOS_DETERMINISTICOS_AJUDA[cat_fallback],
                 modelo_registrado="fallback_deterministico_seguranca",
             )
+
+        # Relato socioeconômico legítimo sem P02/ilícito: contingência determinística ancorada no RAG
+        if tem_contexto_socio and not tem_violacao_p02:
+            return {
+                "dentro_do_escopo": True,
+                "motivo_rejeicao": None,
+                "categoria_encaminhamento": None,
+                "padrao_execucao": "padrao",
+                "justificativa_padrao": "Modo degradado ativado: busca direta nas fichas oficiais sem LLM.",
+                "modelos_utilizados": _registrar_modelo(state, "guardrail", "fallback_deterministico_escopo"),
+                "modo_degradado": True,
+                "eventos_fallback": _registrar_evento_fallback(
+                    state,
+                    f"guardrail: indisponibilidade LLM ({erro_sanitizado}); ativado fallback determinístico RAG",
+                ),
+                "mensagem_apoio": None,
+                "status_api": STATUS_EM_PROCESSAMENTO,
+            }
+
+        # Fora de escopo ou incerto: mantém fail-closed
         return {
             "dentro_do_escopo": False,
             "categoria_encaminhamento": None,
@@ -503,6 +607,13 @@ def agente_guardrail(state: EstadoSistema) -> dict:
     if validacao.eh_valido or resgate_socioeconomico:
         padrao = validacao.padrao_execucao or "padrao"
         justificativa = validacao.justificativa_padrao or validacao.motivo
+        eventos = list(state.get("eventos_fallback") or [])
+        if eh_modelo_secundario_local(modelo_usado) and padrao in ("rewoo", "reflexion"):
+            eventos.append(
+                f"guardrail: fallback local ({modelo_usado}) ativo; simplificado padrão '{padrao}' para 'padrao'"
+            )
+            justificativa = f"{justificativa} (simplificado para fluxo padrão no fallback local)"
+            padrao = "padrao"
         apoio = _montar_resposta_encaminhamento(categoria_final, mensagem) if categoria_final else None
         return {
             "dentro_do_escopo": True,
@@ -511,6 +622,7 @@ def agente_guardrail(state: EstadoSistema) -> dict:
             "padrao_execucao": padrao,
             "justificativa_padrao": justificativa,
             "modelos_utilizados": modelos,
+            "eventos_fallback": eventos,
             "mensagem_apoio": apoio,
             "status_api": STATUS_EM_PROCESSAMENTO,
         }
@@ -556,6 +668,18 @@ def agente_extrator_perfil(state: EstadoSistema) -> dict:
             f"Relato do cidadão:\n{state['mensagem_usuario']}",
         )
     except Exception as erro:
+        mensagem = state["mensagem_usuario"]
+        if state.get("dentro_do_escopo") and not eh_indicio_fraude_ou_ilicito(mensagem):
+            return {
+                "perfil_extraido": None,
+                "modo_degradado": True,
+                "eventos_fallback": _registrar_evento_fallback(
+                    state,
+                    f"extrator_perfil: indisponibilidade LLM ({sanitizar_mensagem_erro(erro)}); "
+                    "busca RAG direta sem extração estruturada",
+                ),
+                "modelos_utilizados": _registrar_modelo(state, "extrator_perfil", "fallback_sem_extracao"),
+            }
         return _erro_api("extrator_perfil", erro)
     return {
         "perfil_extraido": perfil.model_dump(),
@@ -604,7 +728,15 @@ def agente_analista_elegibilidade(state: EstadoSistema) -> dict:
             state, "analista_elegibilidade", AnaliseElegibilidade, PROMPT_ANALISTA, prompt_usuario
         )
     except Exception as erro:
-        return _erro_api("analista_elegibilidade", erro)
+        return {
+            "modo_degradado": True,
+            "eventos_fallback": _registrar_evento_fallback(
+                state,
+                f"analista_elegibilidade: indisponibilidade LLM ({sanitizar_mensagem_erro(erro)}); "
+                "síntese determinística sobre fichas já recuperadas",
+            ),
+            "modelos_utilizados": _registrar_modelo(state, "analista_elegibilidade", "fallback_deterministico_rag"),
+        }
     return {
         "analise_elegibilidade": analise.model_dump(),
         "modelos_utilizados": _registrar_modelo(state, "analista_elegibilidade", modelo_usado),
@@ -631,7 +763,15 @@ def agente_comunicador(state: EstadoSistema) -> dict:
     try:
         texto, modelo_usado = _invocar_texto_resiliente(state, "comunicador", PROMPT_COMUNICADOR, prompt_usuario)
     except Exception as erro:
-        return _erro_api("comunicador", erro)
+        return {
+            "modo_degradado": True,
+            "eventos_fallback": _registrar_evento_fallback(
+                state,
+                f"comunicador: indisponibilidade LLM ({sanitizar_mensagem_erro(erro)}); "
+                "formatação determinística do parecer/fichas",
+            ),
+            "modelos_utilizados": _registrar_modelo(state, "comunicador", "fallback_deterministico_rag"),
+        }
 
     return {
         "resposta_final": _garantir_aviso_institucional(texto),
@@ -667,7 +807,16 @@ def agente_rewoo_planner(state: EstadoSistema) -> dict:
             f"Relato multifacetado / dúvida do cidadão:\n{state['mensagem_usuario']}",
         )
     except Exception as erro:
-        return _erro_api("rewoo_planner", erro)
+        return {
+            "padrao_execucao": "padrao",
+            "justificativa_padrao": "Downgrade automático de ReWOO para fluxo padrão após falha no planejador.",
+            "eventos_fallback": _registrar_evento_fallback(
+                state,
+                f"rewoo_planner: indisponibilidade/falha LLM ({sanitizar_mensagem_erro(erro)}); "
+                "downgrade para fluxo 'padrao'",
+            ),
+            "modelos_utilizados": _registrar_modelo(state, "rewoo_planner", "downgrade_para_padrao"),
+        }
 
     passos_dump = [p.model_dump() for p in plano.passos]
     return {
@@ -756,25 +905,48 @@ def agente_rewoo_solver(state: EstadoSistema) -> dict:
         analise, modelo_analise = _invocar_estruturado_resiliente(
             state, "rewoo_solver", AnaliseElegibilidade, PROMPT_REWOO_SOLVER_ANALISE, prompt_analise
         )
-        analise_dump = analise.model_dump()
-        prompt_sintese = (
-            f"MENSAGEM DO CIDADÃO:\n{state['mensagem_usuario']}\n\n"
-            f"MAPA DAS NECESSIDADES INVESTIGADAS (ReWOO):\n{mapa_plano}\n\n"
-            "PERFIL EXTRAÍDO:\n"
-            + json.dumps(state.get("perfil_extraido") or {}, ensure_ascii=False, indent=2)
-            + "\n\nPARECER DO SOLVER DE ELEGIBILIDADE:\n"
-            + json.dumps(analise_dump, ensure_ascii=False, indent=2)
-            + "\n\nDOCUMENTOS OFICIAIS RECUPERADOS:\n\n"
-            + "\n\n".join(documentos)
-            + nota_apoio
-        )
+    except Exception as erro:
+        return {
+            "modo_degradado": True,
+            "eventos_fallback": _registrar_evento_fallback(
+                state,
+                f"rewoo_solver: indisponibilidade LLM na análise ({sanitizar_mensagem_erro(erro)}); "
+                "síntese determinística sobre fichas recuperadas",
+            ),
+            "modelos_utilizados": _registrar_modelo(state, "rewoo_solver", "fallback_deterministico_rag"),
+        }
+
+    analise_dump = analise.model_dump()
+    modelos = _registrar_modelo(state, "rewoo_solver", modelo_analise)
+
+    prompt_sintese = (
+        f"MENSAGEM DO CIDADÃO:\n{state['mensagem_usuario']}\n\n"
+        f"MAPA DAS NECESSIDADES INVESTIGADAS (ReWOO):\n{mapa_plano}\n\n"
+        "PERFIL EXTRAÍDO:\n"
+        + json.dumps(state.get("perfil_extraido") or {}, ensure_ascii=False, indent=2)
+        + "\n\nPARECER DO SOLVER DE ELEGIBILIDADE:\n"
+        + json.dumps(analise_dump, ensure_ascii=False, indent=2)
+        + "\n\nDOCUMENTOS OFICIAIS RECUPERADOS:\n\n"
+        + "\n\n".join(documentos)
+        + nota_apoio
+    )
+    try:
         texto_sintese, modelo_sintese = _invocar_texto_resiliente(
             state, "comunicador", PROMPT_COMUNICADOR, prompt_sintese
         )
     except Exception as erro:
-        return _erro_api("rewoo_solver", erro)
+        modelos["rewoo_comunicador"] = "fallback_deterministico_rag"
+        return {
+            "analise_elegibilidade": analise_dump,
+            "modo_degradado": True,
+            "eventos_fallback": _registrar_evento_fallback(
+                state,
+                f"rewoo_comunicador: indisponibilidade LLM ({sanitizar_mensagem_erro(erro)}); "
+                "preservada análise do solver com formatação determinística",
+            ),
+            "modelos_utilizados": modelos,
+        }
 
-    modelos = _registrar_modelo(state, "rewoo_solver", modelo_analise)
     modelos["rewoo_comunicador"] = modelo_sintese
     return {
         "analise_elegibilidade": analise_dump,
@@ -794,7 +966,7 @@ Verifique os 4 critérios obrigatórios:
 1. Ancoragem Estrita (RIA02): A resposta ou análise inventou valores em reais, limites exatos de renda, idades, prazos, regras de acumulação de benefícios ou programas que NÃO estão escritos literalmente nos DOCUMENTOS OFICIAIS RECUPERADOS? (Se o cidadão perguntar se pode acumular dois benefícios e o documento não trouxer essa regra explícita, o assistente NÃO pode afirmar certeza sem base documental — deve explicar o que consta em cada documento e informar que a regra de acumulação não está detalhada na ficha resumida, orientando confirmação no CRAS/INSS).
 2. Fidelidade Nominal e Legal: Todos os programas apresentados citam corretamente o nome oficial, o órgão responsável e a legislação presente no documento (Lei base, Regulamentação e normas/portarias de 2024–2026 constantes na ficha)?
 3. Completude e Transparência: Algum programa claramente pertinente presente nos documentos recuperados foi omitido sem justificativa, ou deixou-se de avisar quando um critério consta como "Não especificado no documento de origem" / "Informação parcial no documento"?
-4. Acessibilidade e Limites P02: O texto está em linguagem clara/acolhedora, contém a seção "**Próximos passos práticos**" e termina literalmente com o aviso: "{AVISO_INSTITUCIONAL}"?
+4. Acessibilidade, Concisão e Limites P02: O texto está em linguagem clara, acolhedora e concisa (1 tópico curto por programa, sem repetições excessivas ou blocos longos), contém a seção "**Próximos passos práticos**" curta e termina literalmente com o aviso: "{AVISO_INSTITUCIONAL}"?
 
 Se TODOS os 4 itens estiverem plenamente atendidos sem alucinações nem omissões relevantes, marque aprovado=True (problemas_encontrados=[], instrucoes_correcao="").
 Caso haja qualquer falha, marque aprovado=False, liste cada falha objetivamente em problemas_encontrados e escreva instrucoes_correcao diretas para o Revisor corrigir."""
@@ -802,6 +974,7 @@ Caso haja qualquer falha, marque aprovado=False, liste cada falha objetivamente 
 
 def agente_reflexion_critico(state: EstadoSistema) -> dict:
     iteracao = int(state.get("iteracao_reflexion") or 0)
+    chave_agente = "reflexion_critico" if iteracao == 0 else f"reflexion_critico_{iteracao}"
     prompt_usuario = (
         f"RELATO ORIGINAL DO CIDADÃO:\n{state['mensagem_usuario']}\n\n"
         "DOCUMENTOS OFICIAIS RECUPERADOS (FONTE EXCLUSIVA DE VERDADE):\n\n"
@@ -815,13 +988,42 @@ def agente_reflexion_critico(state: EstadoSistema) -> dict:
             state, "reflexion_critico", AvaliacaoCriticaReflexion, PROMPT_REFLEXION_CRITICO, prompt_usuario
         )
     except Exception as erro:
+        resposta_existente = (state.get("resposta_final") or "").strip()
+        if resposta_existente:
+            historico = list(state.get("historico_reflexion") or [])
+            historico.append(
+                {
+                    "iteracao": iteracao,
+                    "modelo_critico": "ignorado_indisponibilidade_llm",
+                    "aprovado": True,
+                    "problemas_encontrados": [],
+                    "instrucoes_correcao": "",
+                    "observacao": "Auditoria Reflexion ignorada por indisponibilidade do LLM; resposta validada preservada.",
+                }
+            )
+            return {
+                "critica_reflexion": {
+                    "aprovado": True,
+                    "problemas_encontrados": [],
+                    "instrucoes_correcao": "",
+                },
+                "historico_reflexion": historico,
+                "resposta_final": _garantir_aviso_institucional(resposta_existente),
+                "modo_degradado": True,
+                "eventos_fallback": _registrar_evento_fallback(
+                    state,
+                    f"{chave_agente}: indisponibilidade LLM ({sanitizar_mensagem_erro(erro)}); "
+                    "preservada resposta validada do comunicador",
+                ),
+                "modelos_utilizados": _registrar_modelo(state, chave_agente, "ignorado_indisponibilidade_llm"),
+                "status_api": STATUS_DEGRADADO,
+            }
         return _erro_api("reflexion_critico", erro)
 
     critica_dict = critica.model_dump()
     historico = list(state.get("historico_reflexion") or [])
     historico.append({"iteracao": iteracao, "modelo_critico": modelo_usado, **critica_dict})
 
-    chave_agente = "reflexion_critico" if iteracao == 0 else f"reflexion_critico_{iteracao}"
     return {
         "critica_reflexion": critica_dict,
         "historico_reflexion": historico,
@@ -843,8 +1045,10 @@ Reescreva a orientação ao cidadão aplicando integralmente TODAS as correçõe
 
 def agente_reflexion_revisor(state: EstadoSistema) -> dict:
     nova_iteracao = int(state.get("iteracao_reflexion") or 0) + 1
+    chave_agente = f"reflexion_revisor_{nova_iteracao}"
     critica = state.get("critica_reflexion") or {}
     nota_apoio = NOTA_ORQUESTRACAO_APOIO_SEPARADO if state.get("categoria_encaminhamento") else ""
+    resposta_anterior = (state.get("resposta_final") or "").strip()
     contexto_base = (
         f"RELATO ORIGINAL DO CIDADÃO:\n{state['mensagem_usuario']}\n\n"
         "PERFIL SOCIOECONÔMICO EXTRAÍDO:\n"
@@ -853,7 +1057,7 @@ def agente_reflexion_revisor(state: EstadoSistema) -> dict:
         + ("\n\n".join(state.get("documentos_encontrados") or []) or "Nenhum documento recuperado.")
         + "\n\n---\nANÁLISE DE ELEGIBILIDADE ANTERIOR:\n"
         + json.dumps(state.get("analise_elegibilidade") or {}, ensure_ascii=False, indent=2)
-        + f"\n\nRESPOSTA ANTERIOR:\n{state.get('resposta_final', '')}\n\n"
+        + f"\n\nRESPOSTA ANTERIOR:\n{resposta_anterior}\n\n"
         "---\nPARECER DO AUDITOR CRÍTICO (CORRIJA TODOS OS PONTOS ABAIXO):\n"
         + json.dumps(critica, ensure_ascii=False, indent=2)
     )
@@ -861,20 +1065,50 @@ def agente_reflexion_revisor(state: EstadoSistema) -> dict:
         analise_rev, mod_analise = _invocar_estruturado_resiliente(
             state, "reflexion_revisor", AnaliseElegibilidade, PROMPT_REFLEXION_REVISOR_ANALISE, contexto_base
         )
-        analise_dump = analise_rev.model_dump()
-        prompt_texto = (
-            contexto_base
-            + "\n\n---\nNOVA ANÁLISE DE ELEGIBILIDADE JÁ CORRIGIDA:\n"
-            + json.dumps(analise_dump, ensure_ascii=False, indent=2)
-            + nota_apoio
-        )
+    except Exception as erro:
+        if resposta_anterior:
+            return {
+                "resposta_final": _garantir_aviso_institucional(resposta_anterior),
+                "modo_degradado": True,
+                "eventos_fallback": _registrar_evento_fallback(
+                    state,
+                    f"{chave_agente}: indisponibilidade LLM na revisão analítica ({sanitizar_mensagem_erro(erro)}); "
+                    "preservada resposta anterior validada",
+                ),
+                "modelos_utilizados": _registrar_modelo(state, chave_agente, "ignorado_indisponibilidade_llm"),
+                "status_api": STATUS_DEGRADADO,
+            }
+        return _erro_api("reflexion_revisor", erro)
+
+    analise_dump = analise_rev.model_dump()
+    prompt_texto = (
+        contexto_base
+        + "\n\n---\nNOVA ANÁLISE DE ELEGIBILIDADE JÁ CORRIGIDA:\n"
+        + json.dumps(analise_dump, ensure_ascii=False, indent=2)
+        + nota_apoio
+    )
+    try:
         texto_rev, mod_texto = _invocar_texto_resiliente(
             state, "reflexion_revisor", PROMPT_REFLEXION_REVISOR_TEXTO, prompt_texto
         )
     except Exception as erro:
+        if resposta_anterior:
+            return {
+                "analise_elegibilidade": analise_dump,
+                "resposta_final": _garantir_aviso_institucional(resposta_anterior),
+                "modo_degradado": True,
+                "eventos_fallback": _registrar_evento_fallback(
+                    state,
+                    f"{chave_agente}: indisponibilidade LLM na reescrita ({sanitizar_mensagem_erro(erro)}); "
+                    "preservada resposta anterior validada",
+                ),
+                "modelos_utilizados": _registrar_modelo(
+                    state, chave_agente, f"{mod_analise} + ignorado_indisponibilidade_llm"
+                ),
+                "status_api": STATUS_DEGRADADO,
+            }
         return _erro_api("reflexion_revisor", erro)
 
-    chave_agente = f"reflexion_revisor_{nova_iteracao}"
     modelo_reg = mod_analise if mod_analise == mod_texto else f"{mod_analise} + {mod_texto}"
     return {
         "iteracao_reflexion": nova_iteracao,
@@ -885,15 +1119,31 @@ def agente_reflexion_revisor(state: EstadoSistema) -> dict:
     }
 
 
+def agente_fallback_rag(state: EstadoSistema) -> dict:
+    """Sintetiza resposta determinística ancorada exclusivamente nas fichas oficiais recuperadas (Camada 4)."""
+    texto = compor_resposta_deterministica_rag(
+        documentos=state.get("documentos_encontrados") or [],
+        analise_elegibilidade=state.get("analise_elegibilidade"),
+        aviso_institucional=AVISO_INSTITUCIONAL,
+    )
+    return {
+        "resposta_final": _garantir_aviso_institucional(texto),
+        "modo_degradado": True,
+        "modelos_utilizados": _registrar_modelo(state, "fallback_rag", "deterministico_rag_oficial"),
+        "status_api": STATUS_DEGRADADO,
+    }
+
+
 def consolidar_encaminhamento_ajuda(state: EstadoSistema) -> dict:
     """Consolida resposta_beneficios, mensagem_apoio e resposta_final antes do encerramento em END."""
     categoria = state.get("categoria_encaminhamento")
     dentro_escopo = bool(state.get("dentro_do_escopo"))
     status_atual = state.get("status_api")
     resposta_atual = (state.get("resposta_final") or "").strip()
+    status_atendido = status_atual in (STATUS_SUCESSO, STATUS_DEGRADADO)
 
     if not categoria:
-        if dentro_escopo and status_atual == STATUS_SUCESSO:
+        if dentro_escopo and status_atendido:
             return {
                 "resposta_beneficios": resposta_atual,
                 "mensagem_apoio": None,
@@ -913,17 +1163,22 @@ def consolidar_encaminhamento_ajuda(state: EstadoSistema) -> dict:
             "status_api": STATUS_ENCAMINHAMENTO_AJUDA,
         }
 
-    if status_atual == STATUS_SUCESSO and resposta_atual:
+    if status_atendido and resposta_atual:
         combinada = (
             f"{resposta_atual}{SEPARADOR_MENSAGEM_APOIO}{apoio}"
             if apoio not in resposta_atual
             else resposta_atual
         )
+        status_final = (
+            STATUS_DEGRADADO_COM_ENCAMINHAMENTO_AJUDA
+            if status_atual == STATUS_DEGRADADO
+            else STATUS_SUCESSO_COM_ENCAMINHAMENTO_AJUDA
+        )
         return {
             "resposta_beneficios": resposta_atual,
             "mensagem_apoio": apoio,
             "resposta_final": combinada,
-            "status_api": STATUS_SUCESSO_COM_ENCAMINHAMENTO_AJUDA,
+            "status_api": status_final,
         }
 
     combinada_erro = f"{resposta_atual}{SEPARADOR_MENSAGEM_APOIO}{apoio}" if resposta_atual else apoio
