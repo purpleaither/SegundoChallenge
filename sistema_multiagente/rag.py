@@ -286,10 +286,25 @@ def inferir_categoria_sensivel_fallback(pergunta: str) -> Optional[CategoriaEnca
     return None
 
 
+_INDICIO_FRAUDE_OU_ILICITO = re.compile(
+    r"\b(?:fraud\w*|falsific\w*|burlar|omitir\s+renda|esconder\s+(?:meu\s+)?sal[aá]rio|"
+    r"il[ií]cit\w*|tr[aá]fico|documento\s+falso|laudo\s+falso|atestado\s+falso|cpf\s+falso)\b",
+    re.IGNORECASE,
+)
+
+
 def eh_pedido_ilicito_explicito(pergunta: str) -> bool:
     """Detecta pedidos diretos de instrução ou prática de fraude documental/beneficiária ou tráfico."""
     texto = re.sub(r"\s+", " ", pergunta).strip()
     return any(p.search(texto) for p in _PADROES_PEDIDO_ILICITO_EXPLICITO)
+
+
+def eh_indicio_fraude_ou_ilicito(pergunta: str) -> bool:
+    """Detecta indícios de fraude/falsificação/ilícito para manter fail-closed no fallback offline."""
+    if eh_pedido_ilicito_explicito(pergunta):
+        return True
+    texto = re.sub(r"\s+", " ", pergunta).strip()
+    return bool(_INDICIO_FRAUDE_OU_ILICITO.search(texto))
 
 
 def possui_contexto_socioeconomico(pergunta: str) -> bool:
@@ -501,3 +516,178 @@ def executar_buscas_rewoo(
         "documentos": _dividir_contexto(contexto),
         "contexto": contexto,
     }
+
+
+_ROTULOS_STATUS_ELEGIBILIDADE: dict[str, str] = {
+    "elegivel": "Critérios descritos na base compatíveis com o relato (confirmação oficial no CRAS/órgão)",
+    "potencialmente_elegivel": "Potencialmente aplicável (requer comprovação/confirmação de requisitos)",
+    "criterio_nao_especificado_na_base": "Relacionado ao relato (critérios não especificados ou parciais na base resumida)",
+}
+
+_PROXIMOS_PASSOS_PADRAO = (
+    "**Próximos passos práticos**\n"
+    "1. Procure o CRAS (Centro de Referência de Assistência Social) ou o órgão gestor responsável pelo programa.\n"
+    "2. Verifique ou atualize sua inscrição no Cadastro Único (CadÚnico).\n"
+    "3. Leve documento oficial com foto, CPF, comprovante de residência e, se tiver, comprovantes de renda e da composição familiar."
+)
+
+
+def _extrair_linha_prefixo(linhas: list[str], prefixo: str) -> str:
+    for linha in linhas:
+        if linha.startswith(prefixo):
+            return linha.split(": ", 1)[1].strip()
+    return ""
+
+
+def _extrair_ficha_documento(documento: str) -> dict[str, str]:
+    """Extrai metadados oficiais de uma ficha recuperada, enriquecendo com o CSV homologado quando disponível."""
+    linhas = [linha.strip() for linha in documento.splitlines() if linha.strip()]
+    programa = _extrair_linha_prefixo(linhas, "Programa oficial: ")
+    if not programa:
+        titulo_md = next((linha.removeprefix("# ").strip() for linha in linhas if linha.startswith("# ")), "")
+        programa = titulo_md
+
+    row: dict[str, str] = {}
+    if programa:
+        try:
+            row = _mapa_programas().get(slug(programa), {})
+        except Exception:
+            row = {}
+
+    return {
+        "programa": row.get("programa") or programa or "Programa oficial identificado",
+        "nome_atual": row.get("nome_atual_encontrado_2026")
+        or _extrair_linha_prefixo(linhas, "Nome atual indicado na planilha: "),
+        "orgao": row.get("orgao_responsavel") or _extrair_linha_prefixo(linhas, "Órgão responsável: "),
+        "descricao": row.get("descricao_categoria") or _extrair_linha_prefixo(linhas, "Descrição: "),
+        "tipo_beneficio": row.get("tipo_beneficio") or _extrair_linha_prefixo(linhas, "Tipo de benefício: "),
+        "publico_alvo": row.get("descricao_publico_alvo") or _extrair_linha_prefixo(linhas, "Público-alvo: "),
+        "criterios": row.get("criterios_elegibilidade_resumidos") or _extrair_linha_prefixo(linhas, "Critérios: "),
+        "status_criterio": row.get("status_criterio")
+        or _extrair_linha_prefixo(linhas, "Status dos critérios no documento: "),
+        "legislacao_base": row.get("legislacao_base") or _extrair_linha_prefixo(linhas, "Legislação base: "),
+        "regulamentacao": row.get("regulamentacao_principal")
+        or _extrair_linha_prefixo(linhas, "Regulamentação principal: "),
+        "atualizacao_recente": row.get("atualizacao_normativa_recente")
+        or _extrair_linha_prefixo(linhas, "Atualização normativa recente: "),
+        "url_oficial": row.get("url_fonte") or _extrair_linha_prefixo(linhas, "URL oficial: "),
+    }
+
+
+def _valor_informativo(valor: str) -> bool:
+    limpo = (valor or "").strip()
+    return bool(limpo) and limpo.casefold() not in {
+        "não informado",
+        "não informada",
+        "nao informado",
+        "nao informada",
+    }
+
+
+def compor_resposta_deterministica_rag(
+    documentos: list[str] | None,
+    analise_elegibilidade: Optional[dict] = None,
+    aviso_institucional: str = "",
+    max_programas: int = 4,
+) -> str:
+    """Monta orientação determinística 100% ancorada na base oficial (RIA02), sem alucinar elegibilidade."""
+    docs = list(documentos or [])
+    programas_avaliados = [
+        item
+        for item in ((analise_elegibilidade or {}).get("programas_avaliados") or [])
+        if isinstance(item, dict) and item.get("status_elegibilidade") != "inelegivel"
+    ]
+
+    blocos: list[str] = []
+
+    if programas_avaliados:
+        blocos.append(
+            "**Aviso de modo informativo simplificado:** devido a uma instabilidade temporária no serviço "
+            "de redação por inteligência artificial, apresento de forma direta o resumo da análise já "
+            "realizada com base nos documentos oficiais recuperados."
+        )
+        resumo_parecer = str((analise_elegibilidade or {}).get("resumo_parecer") or "").strip()
+        if resumo_parecer:
+            blocos.append(resumo_parecer)
+
+        for item in programas_avaliados[:max_programas]:
+            nome = str(item.get("nome_programa") or "Programa oficial").strip()
+            orgao = str(item.get("orgao_responsavel") or "").strip()
+            status = str(item.get("status_elegibilidade") or "").strip()
+            rotulo_status = _ROTULOS_STATUS_ELEGIBILIDADE.get(status, status or "Verificar no órgão responsável")
+            linhas_item = [f"### {nome}"]
+            if orgao:
+                linhas_item.append(f"- **Órgão responsável:** {orgao}")
+            linhas_item.append(f"- **Situação preliminar:** {rotulo_status}")
+            atendidos = [str(c).strip() for c in (item.get("criterios_atendidos") or []) if str(c).strip()]
+            if atendidos:
+                linhas_item.append(f"- **Requisitos relacionados ao seu relato:** {'; '.join(atendidos)}")
+            pendentes = [
+                str(c).strip() for c in (item.get("criterios_pendentes_ou_impeditivos") or []) if str(c).strip()
+            ]
+            if pendentes:
+                linhas_item.append(f"- **Pontos para confirmar/comprovar:** {'; '.join(pendentes)}")
+            base_legal = str(item.get("base_legal") or "").strip()
+            if _valor_informativo(base_legal):
+                linhas_item.append(f"- **Legislação citada na base:** {base_legal}")
+            obs = str(item.get("observacoes_documentais") or "").strip()
+            if _valor_informativo(obs):
+                linhas_item.append(f"- **Observações da base oficial:** {obs}")
+            blocos.append("\n".join(linhas_item))
+    elif docs:
+        blocos.append(
+            "**Aviso de modo informativo simplificado:** devido à alta demanda ou instabilidade temporária "
+            "no serviço de inteligência artificial, não foi possível concluir a análise automatizada de "
+            "elegibilidade. Abaixo estão as fichas oficiais mais relacionadas ao seu relato para consulta "
+            "direta (sem afirmação de direito ou elegibilidade):"
+        )
+        for doc in docs[:max_programas]:
+            ficha = _extrair_ficha_documento(doc)
+            linhas_item = [f"### {ficha['programa']}"]
+            if _valor_informativo(ficha["nome_atual"]) and ficha["nome_atual"].casefold() != ficha["programa"].casefold():
+                linhas_item.append(f"- **Nome atual indicado na base:** {ficha['nome_atual']}")
+            if _valor_informativo(ficha["orgao"]):
+                linhas_item.append(f"- **Órgão responsável:** {ficha['orgao']}")
+            if _valor_informativo(ficha["tipo_beneficio"]):
+                linhas_item.append(f"- **Tipo de benefício:** {ficha['tipo_beneficio']}")
+            if _valor_informativo(ficha["publico_alvo"]):
+                linhas_item.append(f"- **Público-alvo na base:** {ficha['publico_alvo']}")
+            if _valor_informativo(ficha["criterios"]):
+                linhas_item.append(f"- **Critérios resumidos na base:** {ficha['criterios']}")
+            else:
+                linhas_item.append(
+                    "- **Critérios na base:** a base resumida não especifica todos os critérios; confirme presencialmente no CRAS ou órgão responsável."
+                )
+            status_crit = ficha["status_criterio"]
+            if status_crit and any(t in status_crit.casefold() for t in ("parcial", "não especificado", "nao especificado")):
+                linhas_item.append(
+                    f"- **Transparência documental:** status dos critérios registrado como \"{status_crit}\"; confirme os detalhes no órgão responsável."
+                )
+            partes_legais = [
+                parte
+                for parte in (
+                    f"Lei base: {ficha['legislacao_base']}" if _valor_informativo(ficha["legislacao_base"]) else "",
+                    f"Regulamentação: {ficha['regulamentacao']}" if _valor_informativo(ficha["regulamentacao"]) else "",
+                    f"Atualização recente: {ficha['atualizacao_recente']}"
+                    if _valor_informativo(ficha["atualizacao_recente"])
+                    else "",
+                )
+                if parte
+            ]
+            if partes_legais:
+                linhas_item.append(f"- **Legislação na base oficial:** {' | '.join(partes_legais)}")
+            if _valor_informativo(ficha["url_oficial"]):
+                linhas_item.append(f"- **Fonte oficial:** {ficha['url_oficial']}")
+            blocos.append("\n".join(linhas_item))
+    else:
+        blocos.append(
+            "**Aviso de modo informativo simplificado:** devido à instabilidade temporária no serviço de "
+            "inteligência artificial, realizei busca direta na base oficial de programas federais, mas não "
+            "encontrei fichas suficientemente próximas do seu relato. Isso não significa que você não tenha "
+            "direito a algum benefício — procure o CRAS para uma avaliação completa."
+        )
+
+    blocos.append(_PROXIMOS_PASSOS_PADRAO)
+    if aviso_institucional:
+        blocos.append(aviso_institucional)
+    return "\n\n".join(blocos).strip()

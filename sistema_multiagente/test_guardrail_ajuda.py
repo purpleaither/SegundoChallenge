@@ -20,6 +20,7 @@ import main as cli_main
 import rag
 from schemas import (
     STATUS_BLOQUEADO,
+    STATUS_DEGRADADO_COM_ENCAMINHAMENTO_AJUDA,
     STATUS_EM_PROCESSAMENTO,
     STATUS_ENCAMINHAMENTO_AJUDA,
     STATUS_ERRO_API,
@@ -242,14 +243,59 @@ class RespostaDuplaBeneficiosEAjudaTests(unittest.TestCase):
             padrao_execucao="padrao",
             justificativa_padrao="Padrão.",
         )
-        with patch.object(
-            agents,
-            "invocar_estruturado",
-            side_effect=[(validacao, "gemini-3.1-flash-lite"), RuntimeError("503 UNAVAILABLE")],
+        with (
+            patch.object(
+                agents,
+                "invocar_estruturado",
+                side_effect=[(validacao, "gemini-3.1-flash-lite"), RuntimeError("503 UNAVAILABLE")],
+            ),
+            patch.object(
+                agents,
+                "recuperar_documentos_com_perfil",
+                side_effect=RuntimeError("Falha indisponibilidade RAG"),
+            ),
         ):
             estado = graph.executar_fluxo(frase)
 
         self.assertEqual(estado["status_api"], STATUS_ERRO_API)
+        self.assertIsNotNone(estado["mensagem_apoio"])
+        self.assertIn("188", estado["mensagem_apoio"])
+        self.assertIn("188", estado["resposta_final"])
+
+    def test_preserva_resposta_dupla_em_modo_degradado_rag_se_llm_falhar_apos_guardrail(self) -> None:
+        frase = "sou mae solteira tenho 3 filhos, desempregada, nao aguento mais quero morrer"
+        validacao = ValidacaoEscopo(
+            eh_valido=True,
+            motivo="Relato misto.",
+            categoria_encaminhamento="autoexterminio",
+            padrao_execucao="padrao",
+            justificativa_padrao="Padrão.",
+        )
+        doc_mock = [
+            "=== DOCUMENTO 1 (similaridade: 0.85) ===\n"
+            "Programa oficial: Programa Bolsa Família\n"
+            "Órgão responsável: MDS"
+        ]
+        with (
+            patch.object(
+                agents,
+                "invocar_estruturado",
+                side_effect=[(validacao, "gemini-3.1-flash-lite"), RuntimeError("503 UNAVAILABLE")],
+            ),
+            patch.object(
+                agents,
+                "recuperar_documentos_com_perfil",
+                return_value={"query_busca": frase, "documentos": doc_mock},
+            ) as mock_rag,
+        ):
+            estado = graph.executar_fluxo(frase)
+
+        mock_rag.assert_called_once()
+        self.assertEqual(estado["status_api"], STATUS_DEGRADADO_COM_ENCAMINHAMENTO_AJUDA)
+        self.assertTrue(estado["modo_degradado"])
+        self.assertIsNotNone(estado["resposta_beneficios"])
+        self.assertIn("Bolsa Família", estado["resposta_beneficios"])
+        self.assertIn(agents.AVISO_INSTITUCIONAL, estado["resposta_beneficios"])
         self.assertIsNotNone(estado["mensagem_apoio"])
         self.assertIn("188", estado["mensagem_apoio"])
         self.assertIn("188", estado["resposta_final"])
