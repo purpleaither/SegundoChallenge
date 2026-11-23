@@ -34,7 +34,7 @@ Assistente virtual informativo e multimodal (texto, voz e Libras) desenvolvido p
 A aplicação combina um **Frontend Next.js acessível**, uma **API FastAPI** integrada a um **pipeline multiagente em LangGraph**, recuperação documental (**RAG**) sobre 42 programas oficiais e **serviços locais de voz** (TTS e STT) em português:
 
 - **Frontend (`Frontend/`)**: Next.js 16, React 19 e TypeScript. Renderização segura de Markdown, cards de programas em linguagem simples, seção separada para mensagens de apoio/proteção, painel de acessibilidade (fonte 100–150%, alto contraste, destaque de links, espaçamento, redução de movimento), widget oficial do **VLibras** e controles de voz.
-- **Back-end (`Back-end/` + `sistema_multiagente/`)**: Python 3.12, FastAPI, Uvicorn, Pydantic e **LangGraph**. O chat consome `POST /api/orientar`, que executa:
+- **Back-end (`Back-end/` + `sistema_multiagente/`)**: Python 3 (3.12+), FastAPI, Uvicorn, Pydantic e **LangGraph**. O chat consome `POST /api/orientar`, que executa:
   - **Guardrail**: validação de escopo socioassistencial, bloqueio P02, resposta dupla com canais oficiais de apoio/proteção (risco de autoextermínio e matéria penal) e seleção dinâmica entre 3 padrões agênticos (`padrao`, `rewoo` e `reflexion`).
   - **Resiliência em 4 camadas**: (1) modelos **Google Gemini** por tiers cognitivos (`rapido`, `equilibrado`, `analitico`) com retry (`tenacity`) e circuit breaker com cooldown/TTL; (2) provedor secundário opt-in (**Ollama local** ou **OpenAI-compatible** via `LLM_FALLBACK_ORDER`); (3) degradação graciosa no grafo preservando rascunho/parecer; (4) fallback determinístico ancorado nas fichas do RAG local (`sucesso_degradado`).
 - **Base de Conhecimento e RAG (`Dados-RAG/`)**: 42 programas federais estruturados em CSV, 42 fichas Markdown derivadas e textos legislativos oficiais, indexados no **ChromaDB** com embeddings `bge-m3` via **Ollama** (com fallback automático de coleção local em `rag/chroma_db/` para o multiagente quando o Ollama não está ativo).
@@ -82,7 +82,7 @@ flowchart LR
 
 ### Para execução local (sem Docker)
 - **Git**
-- **Python 3.12+** (usado no Back-end, Multiagente, RAG, TTS e STT)
+- **Python 3** (3.12 ou superior; comando `python3` no macOS/Linux ou `py -3` / `python` no Windows — as imagens Docker utilizam Python 3.12)
 - **Node.js 24+** e **npm** (o `Frontend/Dockerfile` utiliza `node:24-alpine`; os testes do frontend utilizam `node --experimental-strip-types`)
 - **Ollama** instalado e em execução (recomendado para embeddings `bge-m3` e/ou fallback LLM local)
 - Chave da API do Google Gemini (`GOOGLE_API_KEY`) obtida no [Google AI Studio](https://aistudio.google.com/apikey) **ou** configuração de fallback via Ollama local
@@ -186,19 +186,20 @@ O arquivo [`Back-end/requirements.txt`](Back-end/requirements.txt) já inclui au
 
 **macOS / Linux (bash/zsh):**
 ```bash
-python3.12 -m venv .venv
+python3 -m venv .venv
 source .venv/bin/activate
-python -m pip install --upgrade pip
-python -m pip install -r Back-end/requirements.txt
+python3 -m pip install --upgrade pip
+python3 -m pip install -r Back-end/requirements.txt
 ```
 
 **Windows (PowerShell):**
 ```powershell
-py -3.12 -m venv .venv
+py -3 -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
 python -m pip install -r .\Back-end\requirements.txt
 ```
+*(Se no Windows o comando `py` não estiver instalado, substitua `py -3` por `python`.)*
 
 ### Passo 2 — Preparar o Ollama e o índice vetorial RAG
 
@@ -214,12 +215,12 @@ ollama pull qwen2.5:7b
 
 Em seguida, gere/verifique o índice vetorial ChromaDB com o script idempotente [`Back-end/bootstrap.py`](Back-end/bootstrap.py) (ele só reindexa se o corpus ou o código do RAG tiver mudado):
 
-**macOS / Linux:**
+**macOS / Linux (com o `.venv` ativo):**
 ```bash
-python Back-end/bootstrap.py
+python3 Back-end/bootstrap.py
 ```
 
-**Windows (PowerShell):**
+**Windows (PowerShell, com o `.venv` ativo):**
 ```powershell
 python .\Back-end\bootstrap.py
 ```
@@ -229,12 +230,13 @@ python .\Back-end\bootstrap.py
 
 - **Atualizar textos legislativos oficiais** (os documentos em `Dados-RAG/RAG/fontes/` já vêm no repositório; rode novamente apenas se quiser baixar versões novas):
   ```bash
-  python Dados-RAG/RAG/baixar_fontes.py
+  python3 Dados-RAG/RAG/baixar_fontes.py
   ```
 - **Forçar reindexação completa** manualmente (após editar o CSV ou arquivos de fontes):
   ```bash
-  python Dados-RAG/RAG/ingestao.py
+  python3 Dados-RAG/RAG/ingestao.py
   ```
+- *(No Windows PowerShell, use `python .\Dados-RAG\RAG\...` com o `.venv` ativo.)*
 - **Onde o índice vetorial fica salvo:** controlado por `VECTOR_DB_PATH`. Sem a variável, o padrão é `Dados-RAG/vetor-v3` no macOS/Linux e `%LOCALAPPDATA%\AssistenteVirtualDF\vetor-v3` no Windows.
 - **Rodar apenas `/api/orientar` sem Ollama:** se você configurou `GOOGLE_API_KEY` e não pretende usar o Ollama nem as rotas `/api/assistant` e `/api/chat`, pode pular o Passo 2 — na primeira consulta, `sistema_multiagente/rag.py` criará automaticamente uma coleção local do ChromaDB em `rag/chroma_db/`.
 
@@ -244,24 +246,30 @@ python .\Back-end\bootstrap.py
 
 **Modo desenvolvimento (com recarregamento automático `--reload`):**
 
-**macOS / Linux:**
+**macOS / Linux (com o `.venv` ativo):**
 ```bash
-python -m uvicorn main:app --reload --app-dir Back-end --host 127.0.0.1 --port 8000
+python3 -m uvicorn main:app --reload --app-dir Back-end --host 127.0.0.1 --port 8000
 ```
 
-**Windows (PowerShell):**
+**Windows (PowerShell, com o `.venv` ativo):**
 ```powershell
 python -m uvicorn main:app --reload --app-dir .\Back-end --host 127.0.0.1 --port 8000
 ```
 
 **Modo recomendado para privacidade / LGPD (sem logs de acesso HTTP):**
 
+**macOS / Linux:**
 ```bash
-python -m uvicorn main:app --app-dir Back-end --host 127.0.0.1 --port 8000 --no-access-log
+python3 -m uvicorn main:app --app-dir Back-end --host 127.0.0.1 --port 8000 --no-access-log
+```
+
+**Windows (PowerShell):**
+```powershell
+python -m uvicorn main:app --app-dir .\Back-end --host 127.0.0.1 --port 8000 --no-access-log
 ```
 
 > [!TIP]
-> Sempre reinicie o Uvicorn após alterar variáveis no `.env`.
+> Se abrir um novo terminal sem ativar o ambiente virtual (`source .venv/bin/activate` no macOS/Linux ou `.\.venv\Scripts\Activate.ps1` no Windows), substitua `python3` / `python` por `./.venv/bin/python3` (macOS/Linux) ou `.\.venv\Scripts\python.exe` (Windows). Sempre reinicie o Uvicorn após alterar variáveis no `.env`.
 
 ### Passo 4 — Verificar se o Back-end está saudável
 
@@ -336,20 +344,23 @@ O chat por texto funciona normalmente sem estes serviços. Para habilitar a **le
 **macOS / Linux:**
 ```bash
 cd rag
-python3.12 -m venv .venv-tts
-.venv-tts/bin/pip install -r requirements-tts.txt
-.venv-tts/bin/python -m piper.download_voices pt_BR-faber-medium --data-dir voices
-.venv-tts/bin/uvicorn tts_service:app --host 127.0.0.1 --port 8001 --no-access-log
+python3 -m venv .venv-tts
+.venv-tts/bin/python3 -m pip install -r requirements-tts.txt
+.venv-tts/bin/python3 -m piper.download_voices pt_BR-faber-medium --data-dir voices
+.venv-tts/bin/python3 -m uvicorn tts_service:app --host 127.0.0.1 --port 8001 --no-access-log
 ```
 
 **Windows (PowerShell):**
 ```powershell
 cd rag
-py -3.12 -m venv .venv-tts
-.\.venv-tts\Scripts\pip.exe install -r requirements-tts.txt
+py -3 -m venv .venv-tts
+.\.venv-tts\Scripts\python.exe -m pip install -r requirements-tts.txt
 .\.venv-tts\Scripts\python.exe -m piper.download_voices pt_BR-faber-medium --data-dir voices
-.\.venv-tts\Scripts\uvicorn.exe tts_service:app --host 127.0.0.1 --port 8001 --no-access-log
+.\.venv-tts\Scripts\python.exe -m uvicorn tts_service:app --host 127.0.0.1 --port 8001 --no-access-log
 ```
+
+> [!NOTE]
+> **macOS (`SSL: CERTIFICATE_VERIFY_FAILED` ao baixar a voz):** em instalações do Python 3 via `python.org`, execute uma vez `"/Applications/Python 3.x/Install Certificates.command"` (substituindo `3.x` pela versão instalada) ou instale `certifi` e rode o download com `SSL_CERT_FILE="$(.venv-tts/bin/python3 -m certifi)"`.
 
 Verificação: `http://127.0.0.1:8001/api/tts/health` — detalhes em [`rag/TTS.md`](rag/TTS.md).
 
@@ -360,20 +371,20 @@ Baixa os modelos `small` (prévias progressivas durante a fala) e `large-v3-turb
 **macOS / Linux:**
 ```bash
 cd rag
-python3.12 -m venv .venv-stt
-.venv-stt/bin/pip install -r requirements-stt.txt
-.venv-stt/bin/python -c "from faster_whisper import WhisperModel; [WhisperModel(name, device='cpu', compute_type='int8', download_root='models-stt') for name in ['small', 'large-v3-turbo']]"
-STT_MODEL_DIR="$PWD/models-stt" .venv-stt/bin/uvicorn stt_service:app --host 127.0.0.1 --port 8002 --no-access-log
+python3 -m venv .venv-stt
+.venv-stt/bin/python3 -m pip install -r requirements-stt.txt
+.venv-stt/bin/python3 -c "from faster_whisper import WhisperModel; [WhisperModel(name, device='cpu', compute_type='int8', download_root='models-stt') for name in ['small', 'large-v3-turbo']]"
+STT_MODEL_DIR="$PWD/models-stt" .venv-stt/bin/python3 -m uvicorn stt_service:app --host 127.0.0.1 --port 8002 --no-access-log
 ```
 
 **Windows (PowerShell):**
 ```powershell
 cd rag
-py -3.12 -m venv .venv-stt
-.\.venv-stt\Scripts\pip.exe install -r requirements-stt.txt
+py -3 -m venv .venv-stt
+.\.venv-stt\Scripts\python.exe -m pip install -r requirements-stt.txt
 .\.venv-stt\Scripts\python.exe -c "from faster_whisper import WhisperModel; [WhisperModel(name, device='cpu', compute_type='int8', download_root='models-stt') for name in ['small', 'large-v3-turbo']]"
 $env:STT_MODEL_DIR = "$PWD\models-stt"
-.\.venv-stt\Scripts\uvicorn.exe stt_service:app --host 127.0.0.1 --port 8002 --no-access-log
+.\.venv-stt\Scripts\python.exe -m uvicorn stt_service:app --host 127.0.0.1 --port 8002 --no-access-log
 ```
 
 Verificação: `http://127.0.0.1:8002/api/stt/health` — requer `localhost` ou `HTTPS` e permissão de microfone no navegador. Detalhes em [`rag/STT.md`](rag/STT.md).
@@ -385,14 +396,16 @@ Verificação: `http://127.0.0.1:8002/api/stt/health` — requer `localhost` ou 
 Também é possível testar o pipeline LangGraph diretamente no terminal (sem precisar subir o FastAPI nem o Next.js), a partir da raiz do repositório com o `.venv` ativo:
 
 ```bash
+# macOS / Linux (com .venv ativo; no Windows PowerShell, use `python`):
+
 # Pergunta direta
-python -m sistema_multiagente.main "Estou desempregada, tenho 2 filhos pequenos e não consigo pagar a conta de luz"
+python3 -m sistema_multiagente.main "Estou desempregada, tenho 2 filhos pequenos e não consigo pagar a conta de luz"
 
 # Modo --debug (mostra padrão escolhido, modelos por agente, documentos recuperados e eventos de fallback)
-python -m sistema_multiagente.main --debug "Posso acumular BPC com Bolsa Família?"
+python3 -m sistema_multiagente.main --debug "Posso acumular BPC com Bolsa Família?"
 
 # Modo interativo
-python -m sistema_multiagente.main
+python3 -m sistema_multiagente.main
 ```
 
 Consulte [`sistema_multiagente/README.md`](sistema_multiagente/README.md) para mais exemplos de prompts (`padrao`, `rewoo`, `reflexion` e resposta dupla).
@@ -508,18 +521,18 @@ Os testes unitários do **Back-end**, **Sistema Multiagente**, **RAG** e **Front
 
 ### Back-end + Dados-RAG (suíte unificada)
 ```bash
-# Na raiz do repositório, com .venv ativo:
-python Dados-RAG/RAG/testes-automatizados/executar_testes.py
+# Na raiz do repositório, com .venv ativo (no Windows PowerShell, use `python`):
+python3 Dados-RAG/RAG/testes-automatizados/executar_testes.py
 ```
 
 ### Apenas Back-end
 ```bash
-python -m unittest discover -s Back-end -p "test_*.py" -v
+python3 -m unittest discover -s Back-end -p "test_*.py" -v
 ```
 
 ### Sistema Multiagente (Guardrail, resposta dupla e resiliência em 4 camadas)
 ```bash
-python -m unittest discover -s sistema_multiagente -p "test_*.py" -v
+python3 -m unittest discover -s sistema_multiagente -p "test_*.py" -v
 ```
 
 ### Frontend (TypeScript + testes de contrato, Markdown seguro, linguagem simples e voz)
@@ -530,16 +543,26 @@ node --experimental-strip-types --test lib/*.test.mjs
 ```
 
 ### Serviços de voz (TTS e STT)
+**macOS / Linux (a partir da pasta `rag/`):**
 ```bash
-# A partir da pasta rag/ (com os respectivos ambientes virtuais instalados):
-.venv-tts/bin/pip install httpx && .venv-tts/bin/python -m unittest test_tts_service.py
-.venv-stt/bin/pip install httpx && .venv-stt/bin/python -m unittest test_stt_service.py
+.venv-tts/bin/python3 -m pip install httpx && .venv-tts/bin/python3 -m unittest test_tts_service.py
+.venv-stt/bin/python3 -m pip install httpx && .venv-stt/bin/python3 -m unittest test_stt_service.py
+```
+
+**Windows (PowerShell, a partir da pasta `rag\`):**
+```powershell
+.\.venv-tts\Scripts\python.exe -m pip install httpx; .\.venv-tts\Scripts\python.exe -m unittest test_tts_service.py
+.\.venv-stt\Scripts\python.exe -m pip install httpx; .\.venv-stt\Scripts\python.exe -m unittest test_stt_service.py
 ```
 
 ---
 
 ## Solução de Problemas Comuns
 
+- **`command not found: python` ou `python3.12` (macOS / Linux):**
+  Use sempre `python3` para criar os ambientes virtuais e executar scripts com o `.venv` ativo (ou invoque diretamente `./.venv/bin/python3`). No Windows PowerShell, use `py -3` ou `python` (e `.\.venv\Scripts\python.exe` sem ativar o ambiente).
+- **`SSL: CERTIFICATE_VERIFY_FAILED` no macOS ao baixar a voz do Piper ou fontes oficiais:**
+  Em instalações do Python 3 feitas pelo instalador oficial (`python.org`), execute uma vez `"/Applications/Python 3.x/Install Certificates.command"` (conforme sua versão instalada) para registrar os certificados raiz.
 - **`POST /api/orientar` retorna `503` ("A configuração do serviço precisa ser concluída"):**
   Verifique se o `.env` na raiz (ou `sistema_multiagente/.env`) define `GOOGLE_API_KEY` (ou `GEMINI_API_KEY`) ou `LLM_FALLBACK_ORDER=ollama`, e reinicie o Back-end. Confira `GET http://127.0.0.1:8000/api/assistant/status`.
 - **O Frontend abre, mas o chat dá erro de conexão ou chama a rota errada:**
