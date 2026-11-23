@@ -12,26 +12,48 @@ load_dotenv(PASTA_ATUAL / ".env")
 
 from langgraph.graph import END, START, StateGraph
 
-from agents import (
-    MAX_ITERACOES_REFLEXION,
-    STATUS_BLOQUEADO,
-    STATUS_DEGRADADO,
-    STATUS_ENCAMINHAMENTO_AJUDA,
-    STATUS_ERRO_API,
-    agente_analista_elegibilidade,
-    agente_comunicador,
-    agente_extrator_perfil,
-    agente_fallback_rag,
-    agente_guardrail,
-    agente_reflexion_critico,
-    agente_reflexion_revisor,
-    agente_retriever,
-    agente_rewoo_planner,
-    agente_rewoo_solver,
-    agente_rewoo_worker,
-    consolidar_encaminhamento_ajuda,
-)
-from schemas import STATUS_INICIADO, EstadoSistema
+if __package__:
+    from .agents import (
+        MAX_ITERACOES_REFLEXION,
+        STATUS_BLOQUEADO,
+        STATUS_DEGRADADO,
+        STATUS_ENCAMINHAMENTO_AJUDA,
+        STATUS_ERRO_API,
+        agente_analista_elegibilidade,
+        agente_comunicador,
+        agente_extrator_perfil,
+        agente_fallback_rag,
+        agente_guardrail,
+        agente_reflexion_critico,
+        agente_reflexion_revisor,
+        agente_retriever,
+        agente_rewoo_planner,
+        agente_rewoo_solver,
+        agente_rewoo_worker,
+        consolidar_encaminhamento_ajuda,
+    )
+    from .schemas import STATUS_INICIADO, EstadoSistema
+else:
+    from agents import (
+        MAX_ITERACOES_REFLEXION,
+        STATUS_BLOQUEADO,
+        STATUS_DEGRADADO,
+        STATUS_ENCAMINHAMENTO_AJUDA,
+        STATUS_ERRO_API,
+        agente_analista_elegibilidade,
+        agente_comunicador,
+        agente_extrator_perfil,
+        agente_fallback_rag,
+        agente_guardrail,
+        agente_reflexion_critico,
+        agente_reflexion_revisor,
+        agente_retriever,
+        agente_rewoo_planner,
+        agente_rewoo_solver,
+        agente_rewoo_worker,
+        consolidar_encaminhamento_ajuda,
+    )
+    from schemas import STATUS_INICIADO, EstadoSistema
 
 
 def rotear_pos_guardrail(state: EstadoSistema) -> str:

@@ -10,16 +10,28 @@ PASTA_ATUAL = Path(__file__).resolve().parent
 if str(PASTA_ATUAL) not in sys.path:
     sys.path.insert(0, str(PASTA_ATUAL))
 
-from config import TIER_POR_AGENTE
-from graph import executar_fluxo
-from schemas import (
-    STATUS_DEGRADADO,
-    STATUS_DEGRADADO_COM_ENCAMINHAMENTO_AJUDA,
-    STATUS_ENCAMINHAMENTO_AJUDA,
-    STATUS_ERRO_API,
-    STATUS_SUCESSO_COM_ENCAMINHAMENTO_AJUDA,
-    EstadoSistema,
-)
+if __package__:
+    from .config import TIER_POR_AGENTE
+    from .graph import executar_fluxo
+    from .schemas import (
+        STATUS_DEGRADADO,
+        STATUS_DEGRADADO_COM_ENCAMINHAMENTO_AJUDA,
+        STATUS_ENCAMINHAMENTO_AJUDA,
+        STATUS_ERRO_API,
+        STATUS_SUCESSO_COM_ENCAMINHAMENTO_AJUDA,
+        EstadoSistema,
+    )
+else:
+    from config import TIER_POR_AGENTE
+    from graph import executar_fluxo
+    from schemas import (
+        STATUS_DEGRADADO,
+        STATUS_DEGRADADO_COM_ENCAMINHAMENTO_AJUDA,
+        STATUS_ENCAMINHAMENTO_AJUDA,
+        STATUS_ERRO_API,
+        STATUS_SUCESSO_COM_ENCAMINHAMENTO_AJUDA,
+        EstadoSistema,
+    )
 
 
 def _resumir_documentos(documentos: list[str] | None) -> list[str]:

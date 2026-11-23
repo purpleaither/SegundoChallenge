@@ -1,3 +1,7 @@
+> O chat GuIA Social agora usa o LangGraph via `POST /api/orientar`.
+> Veja [configuração, contrato e validação](INTEGRACAO.md).
+> As rotas RAG e de cota descritas abaixo permanecem disponíveis separadamente.
+
 # Back-end
 
 API do assistente, implementada com FastAPI. Ela consulta os programas sociais

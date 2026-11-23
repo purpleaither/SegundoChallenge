@@ -1,3 +1,8 @@
+> Integração local: o chat agora chama `POST /api/orientar`, que executa este grafo.
+> Veja [a ligação HTTP e seus limites](../Back-end/INTEGRACAO.md).
+> Testes do pacote: `python -m unittest discover -s sistema_multiagente -p "test_*.py"` ou `python -m unittest sistema_multiagente.test_guardrail_ajuda sistema_multiagente.test_resiliencia_fallback`.
+> CLI: `python -m sistema_multiagente.main "sua pergunta"`.
+
 # Sistema Multiagente — Assistente Socioassistencial (LangGraph + Gemini + RAG)
 
 Assistente virtual **exclusivamente informativo** sobre programas e benefícios sociais federais do Brasil, implementado com arquitetura multiagente em **LangGraph**, modelos **Google Gemini** escalonados por complexidade cognitiva e recuperação documental (**RAG**) ancorada nos **42 programas oficiais** catalogados em `Dados-RAG/programas_sociais_legislacao_links_oficiais.csv`.

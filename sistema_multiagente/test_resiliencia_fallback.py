@@ -24,26 +24,48 @@ PASTA_ATUAL = Path(__file__).resolve().parent
 if str(PASTA_ATUAL) not in sys.path:
     sys.path.insert(0, str(PASTA_ATUAL))
 
-import agents
-import config
-import graph
-import llm_providers
-import main as cli_main
-import rag
-from schemas import (
-    STATUS_DEGRADADO,
-    STATUS_DEGRADADO_COM_ENCAMINHAMENTO_AJUDA,
-    STATUS_ENCAMINHAMENTO_AJUDA,
-    STATUS_ERRO_API,
-    STATUS_SUCESSO,
-    AnaliseElegibilidade,
-    AvaliacaoCriticaReflexion,
-    AvaliacaoPrograma,
-    PassoPlanoReWOO,
-    PerfilSocioeconomico,
-    PlanoReWOO,
-    ValidacaoEscopo,
-)
+if __package__:
+    from . import agents
+    from . import config
+    from . import graph
+    from . import llm_providers
+    from . import main as cli_main
+    from . import rag
+    from .schemas import (
+        STATUS_DEGRADADO,
+        STATUS_DEGRADADO_COM_ENCAMINHAMENTO_AJUDA,
+        STATUS_ENCAMINHAMENTO_AJUDA,
+        STATUS_ERRO_API,
+        STATUS_SUCESSO,
+        AnaliseElegibilidade,
+        AvaliacaoCriticaReflexion,
+        AvaliacaoPrograma,
+        PassoPlanoReWOO,
+        PerfilSocioeconomico,
+        PlanoReWOO,
+        ValidacaoEscopo,
+    )
+else:
+    import agents
+    import config
+    import graph
+    import llm_providers
+    import main as cli_main
+    import rag
+    from schemas import (
+        STATUS_DEGRADADO,
+        STATUS_DEGRADADO_COM_ENCAMINHAMENTO_AJUDA,
+        STATUS_ENCAMINHAMENTO_AJUDA,
+        STATUS_ERRO_API,
+        STATUS_SUCESSO,
+        AnaliseElegibilidade,
+        AvaliacaoCriticaReflexion,
+        AvaliacaoPrograma,
+        PassoPlanoReWOO,
+        PerfilSocioeconomico,
+        PlanoReWOO,
+        ValidacaoEscopo,
+    )
 
 
 class FakeStructuredLLM:

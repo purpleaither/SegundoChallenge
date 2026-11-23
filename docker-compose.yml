@@ -1,4 +1,4 @@
-# Sobe tudo junto: Ollama (embeddings bge-m3) -> API Python (rag/) -> Frontend Next.js
+# Sobe tudo junto: Ollama (embeddings bge-m3) -> API Python atual (Back-end/) -> Frontend Next.js
 #   docker compose up --build
 #   abra http://localhost:3000
 #
@@ -30,12 +30,19 @@ services:
     restart: "no"
 
   backend:
-    build: ./rag
+    build:
+      context: .
+      dockerfile: Back-end/Dockerfile
     environment:
       OLLAMA_URL: http://ollama:11434
       CORS_ORIGINS: http://localhost:3000
+      GOOGLE_API_KEY: ${GOOGLE_API_KEY:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      LLM_FALLBACK_ORDER: ${LLM_FALLBACK_ORDER:-}
+      OLLAMA_LLM_MODEL: ${OLLAMA_LLM_MODEL:-qwen2.5:7b}
     volumes:
-      - chroma:/app/chroma_db
+      - chroma-v3:/app/index
+      - backend-data:/app/data
     ports:
       - "8000:8000"
     depends_on:
@@ -43,18 +50,41 @@ services:
         condition: service_completed_successfully
     restart: unless-stopped
 
+  tts:
+    build:
+      context: ./rag
+      dockerfile: TTS.Dockerfile
+    ports:
+      - "8001:8001"
+    restart: unless-stopped
+
+  stt:
+    build:
+      context: ./rag
+      dockerfile: STT.Dockerfile
+    ports:
+      - "8002:8002"
+    restart: unless-stopped
+
   frontend:
     build:
       context: ./Frontend
       args:
         BACKEND_URL: http://backend:8000
+        TTS_URL: http://tts:8001
+        STT_URL: http://stt:8002
     ports:
       - "3000:3000"
     depends_on:
       backend:
         condition: service_healthy
+      tts:
+        condition: service_healthy
+      stt:
+        condition: service_healthy
     restart: unless-stopped
 
 volumes:
   ollama:
-  chroma:
+  chroma-v3:
+  backend-data:

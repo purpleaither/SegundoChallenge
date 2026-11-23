@@ -16,7 +16,10 @@ PASTA_DADOS_RAG = PASTA_RAIZ / "Dados-RAG"
 if str(PASTA_DADOS_RAG) not in sys.path:
     sys.path.insert(0, str(PASTA_DADOS_RAG))
 
-from schemas import CategoriaEncaminhamentoAjuda
+if __package__:
+    from .schemas import CategoriaEncaminhamentoAjuda
+else:
+    from schemas import CategoriaEncaminhamentoAjuda
 
 from RAG.dataset import build_program_chunks, read_programs, render_program_document, slug
 from RAG.rag import (

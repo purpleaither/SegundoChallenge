@@ -15,43 +15,82 @@ if str(PASTA_ATUAL) not in sys.path:
     sys.path.insert(0, str(PASTA_ATUAL))
 load_dotenv(PASTA_ATUAL / ".env")
 
-from config import (
-    eh_modelo_secundario_local,
-    invocar_estruturado,
-    invocar_texto,
-    sanitizar_mensagem_erro,
-)
-from rag import (
-    compor_resposta_deterministica_rag,
-    contem_dados_ou_pedido_p02,
-    detectar_situacao_critica_deterministica,
-    eh_indicio_fraude_ou_ilicito,
-    eh_pedido_ilicito_explicito,
-    executar_buscas_rewoo,
-    inferir_categoria_sensivel_fallback,
-    neutralizar_trechos_criticos_para_extracao,
-    possui_contexto_socioeconomico,
-    recuperar_documentos_com_perfil,
-    violacao_operacional_p02,
-)
-from schemas import (
-    CATEGORIAS_ENCAMINHAMENTO_AJUDA,
-    STATUS_BLOQUEADO,
-    STATUS_DEGRADADO,
-    STATUS_DEGRADADO_COM_ENCAMINHAMENTO_AJUDA,
-    STATUS_EM_PROCESSAMENTO,
-    STATUS_ENCAMINHAMENTO_AJUDA,
-    STATUS_ERRO_API,
-    STATUS_SUCESSO,
-    STATUS_SUCESSO_COM_ENCAMINHAMENTO_AJUDA,
-    AnaliseElegibilidade,
-    AvaliacaoCriticaReflexion,
-    CategoriaEncaminhamentoAjuda,
-    EstadoSistema,
-    PerfilSocioeconomico,
-    PlanoReWOO,
-    ValidacaoEscopo,
-)
+if __package__:
+    from .config import (
+        eh_modelo_secundario_local,
+        invocar_estruturado,
+        invocar_texto,
+        sanitizar_mensagem_erro,
+    )
+    from .rag import (
+        compor_resposta_deterministica_rag,
+        contem_dados_ou_pedido_p02,
+        detectar_situacao_critica_deterministica,
+        eh_indicio_fraude_ou_ilicito,
+        eh_pedido_ilicito_explicito,
+        executar_buscas_rewoo,
+        inferir_categoria_sensivel_fallback,
+        neutralizar_trechos_criticos_para_extracao,
+        possui_contexto_socioeconomico,
+        recuperar_documentos_com_perfil,
+        violacao_operacional_p02,
+    )
+    from .schemas import (
+        CATEGORIAS_ENCAMINHAMENTO_AJUDA,
+        STATUS_BLOQUEADO,
+        STATUS_DEGRADADO,
+        STATUS_DEGRADADO_COM_ENCAMINHAMENTO_AJUDA,
+        STATUS_EM_PROCESSAMENTO,
+        STATUS_ENCAMINHAMENTO_AJUDA,
+        STATUS_ERRO_API,
+        STATUS_SUCESSO,
+        STATUS_SUCESSO_COM_ENCAMINHAMENTO_AJUDA,
+        AnaliseElegibilidade,
+        AvaliacaoCriticaReflexion,
+        CategoriaEncaminhamentoAjuda,
+        EstadoSistema,
+        PerfilSocioeconomico,
+        PlanoReWOO,
+        ValidacaoEscopo,
+    )
+else:
+    from config import (
+        eh_modelo_secundario_local,
+        invocar_estruturado,
+        invocar_texto,
+        sanitizar_mensagem_erro,
+    )
+    from rag import (
+        compor_resposta_deterministica_rag,
+        contem_dados_ou_pedido_p02,
+        detectar_situacao_critica_deterministica,
+        eh_indicio_fraude_ou_ilicito,
+        eh_pedido_ilicito_explicito,
+        executar_buscas_rewoo,
+        inferir_categoria_sensivel_fallback,
+        neutralizar_trechos_criticos_para_extracao,
+        possui_contexto_socioeconomico,
+        recuperar_documentos_com_perfil,
+        violacao_operacional_p02,
+    )
+    from schemas import (
+        CATEGORIAS_ENCAMINHAMENTO_AJUDA,
+        STATUS_BLOQUEADO,
+        STATUS_DEGRADADO,
+        STATUS_DEGRADADO_COM_ENCAMINHAMENTO_AJUDA,
+        STATUS_EM_PROCESSAMENTO,
+        STATUS_ENCAMINHAMENTO_AJUDA,
+        STATUS_ERRO_API,
+        STATUS_SUCESSO,
+        STATUS_SUCESSO_COM_ENCAMINHAMENTO_AJUDA,
+        AnaliseElegibilidade,
+        AvaliacaoCriticaReflexion,
+        CategoriaEncaminhamentoAjuda,
+        EstadoSistema,
+        PerfilSocioeconomico,
+        PlanoReWOO,
+        ValidacaoEscopo,
+    )
 
 MAX_ITERACOES_REFLEXION = 2
 

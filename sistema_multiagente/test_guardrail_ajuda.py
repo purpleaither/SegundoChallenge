@@ -14,22 +14,40 @@ PASTA_ATUAL = Path(__file__).resolve().parent
 if str(PASTA_ATUAL) not in sys.path:
     sys.path.insert(0, str(PASTA_ATUAL))
 
-import agents
-import graph
-import main as cli_main
-import rag
-from schemas import (
-    STATUS_BLOQUEADO,
-    STATUS_DEGRADADO_COM_ENCAMINHAMENTO_AJUDA,
-    STATUS_EM_PROCESSAMENTO,
-    STATUS_ENCAMINHAMENTO_AJUDA,
-    STATUS_ERRO_API,
-    STATUS_SUCESSO,
-    STATUS_SUCESSO_COM_ENCAMINHAMENTO_AJUDA,
-    AnaliseElegibilidade,
-    PerfilSocioeconomico,
-    ValidacaoEscopo,
-)
+if __package__:
+    from . import agents
+    from . import graph
+    from . import main as cli_main
+    from . import rag
+    from .schemas import (
+        STATUS_BLOQUEADO,
+        STATUS_DEGRADADO_COM_ENCAMINHAMENTO_AJUDA,
+        STATUS_EM_PROCESSAMENTO,
+        STATUS_ENCAMINHAMENTO_AJUDA,
+        STATUS_ERRO_API,
+        STATUS_SUCESSO,
+        STATUS_SUCESSO_COM_ENCAMINHAMENTO_AJUDA,
+        AnaliseElegibilidade,
+        PerfilSocioeconomico,
+        ValidacaoEscopo,
+    )
+else:
+    import agents
+    import graph
+    import main as cli_main
+    import rag
+    from schemas import (
+        STATUS_BLOQUEADO,
+        STATUS_DEGRADADO_COM_ENCAMINHAMENTO_AJUDA,
+        STATUS_EM_PROCESSAMENTO,
+        STATUS_ENCAMINHAMENTO_AJUDA,
+        STATUS_ERRO_API,
+        STATUS_SUCESSO,
+        STATUS_SUCESSO_COM_ENCAMINHAMENTO_AJUDA,
+        AnaliseElegibilidade,
+        PerfilSocioeconomico,
+        ValidacaoEscopo,
+    )
 
 
 class DetectorDeterministicoTests(unittest.TestCase):

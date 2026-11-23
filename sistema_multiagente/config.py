@@ -44,17 +44,28 @@ PASTA_ATUAL = Path(__file__).resolve().parent
 if str(PASTA_ATUAL) not in sys.path:
     sys.path.insert(0, str(PASTA_ATUAL))
 
-from llm_providers import (  # noqa: E402
-    PROVEDORES_SECUNDARIOS,
-    eh_modelo_secundario_local,
-    extrair_texto_resposta,
-    sanitizar_mensagem_erro,
-)
+if __package__:
+    from .llm_providers import (  # noqa: E402
+        PROVEDORES_SECUNDARIOS,
+        eh_modelo_secundario_local,
+        extrair_texto_resposta,
+        sanitizar_mensagem_erro,
+    )
+else:
+    from llm_providers import (  # noqa: E402
+        PROVEDORES_SECUNDARIOS,
+        eh_modelo_secundario_local,
+        extrair_texto_resposta,
+        sanitizar_mensagem_erro,
+    )
 
 warnings.filterwarnings("ignore", message=".*uses fixed sampling defaults.*")
 
 load_dotenv(PASTA_ATUAL / ".env")
 load_dotenv()
+
+if not os.getenv("GOOGLE_API_KEY") and os.getenv("GEMINI_API_KEY"):
+    os.environ["GOOGLE_API_KEY"] = os.environ["GEMINI_API_KEY"]
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -306,10 +317,21 @@ def _resolver_config_tier(tier: str) -> tuple[list[str], float, int]:
     return modelos, float(cfg["temperature"]), timeout
 
 
+def _obter_chave_gemini() -> str:
+    chave = os.getenv("GOOGLE_API_KEY", "").strip()
+    if chave:
+        return chave
+    chave_alt = os.getenv("GEMINI_API_KEY", "").strip()
+    if chave_alt:
+        os.environ["GOOGLE_API_KEY"] = chave_alt
+        return chave_alt
+    return ""
+
+
 def obter_llm(nome_modelo: str, temperature: float = 0.0, timeout: int = 30) -> ChatGoogleGenerativeAI:
     """Retorna instância cacheada do ChatGoogleGenerativeAI (max_retries=1 para controle via tenacity)."""
-    if not os.getenv("GOOGLE_API_KEY", "").strip():
-        raise ValueError("GOOGLE_API_KEY não configurada no ambiente/.env.")
+    if not _obter_chave_gemini():
+        raise ValueError("GOOGLE_API_KEY (ou GEMINI_API_KEY) não configurada no ambiente/.env.")
     chave = (nome_modelo, temperature, timeout)
     if chave not in _CACHE_LLMS:
         # Em langchain-google-genai 4.5+, max_retries=1 mapeia para HttpRetryOptions(attempts=1),
@@ -477,8 +499,8 @@ def _invocar_com_fallback(
     ultimo_erro: Exception | None = None
     erro_seguranca_gemini: Exception | None = None
 
-    # Camada 1 — Google Gemini (se GOOGLE_API_KEY estiver configurada e circuito aberto não impedir)
-    if os.getenv("GOOGLE_API_KEY", "").strip():
+    # Camada 1 — Google Gemini (se GOOGLE_API_KEY/GEMINI_API_KEY estiver configurada e circuito permitir)
+    if _obter_chave_gemini():
         for nome_modelo in modelos_gemini:
             try:
                 resultado = _executar_com_retry(
