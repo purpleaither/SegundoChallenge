@@ -26,3 +26,14 @@ Frontend/.next/
 Frontend/next-env.d.ts
 Frontend/*.tsbuildinfo
 Frontend/.env*.local
+
+# Local TTS voice weights and environments
+rag/voices/
+rag/.venv-tts/
+
+rag/models-stt/
+rag/.venv-stt/
+
+# Backend atual: índices e dados de execução locais
+Dados-RAG/vetor-v3/
+Back-end/data/

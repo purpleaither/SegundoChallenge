@@ -1,3 +1,7 @@
+> Backend histórico: o frontend atual usa `Back-end/main.py` e `/api/assistant`.
+> Veja [a integração atual](../Back-end/INTEGRACAO.md). Os serviços STT e TTS nesta pasta
+> continuam ativos separadamente; o `api.py` histórico não deve ocupar a porta 8000.
+
 # Base de Conhecimento + Recuperação e Geração RAG (G7, Semanas 2 e 3)
 
 Assistente Virtual Tira-Dúvidas: dada uma pergunta em linguagem popular, recupera os trechos
@@ -140,3 +144,23 @@ O resultado detalhado com métricas agregadas e respostas lado a lado é salvo e
   pertinência temática antes de usar os trechos.
 - A base ainda não tem **documentos exigidos** nem **unidades de atendimento** (RF04/RF05), nem
   programas **distritais** (SEDES-DF, CODHAB, SEEDF, como o Prato Cheio).
+
+## API usada pelo frontend
+
+O frontend encaminha `/api/perguntar` para a API Python na porta 8000. Os serviços
+STT (8002) e TTS (8001) não substituem essa API. Uma resposta 502 do proxy geralmente
+indica que a API Python não foi iniciada ou ainda está montando o índice.
+
+Com o ambiente Python instalado e Ollama ativo, execute em `rag/`:
+
+```sh
+ollama pull bge-m3
+.venv/bin/uvicorn api:app --host 127.0.0.1 --port 8000
+```
+
+A API escolhida usa a base curada em `base/`, embeddings `bge-m3` e respostas por
+modelo de texto fixo. Não é necessário baixar uma LLM adicional para essa rota.
+A primeira inicialização indexa a base antes de aceitar requisições; aguarde
+`Application startup complete`. Verifique `http://127.0.0.1:8000/api/saude` e
+`http://localhost:3000/api/saude`. Ambos devem retornar `status: ok`.
+Mantenha os processos do backend e do frontend em execução durante o uso.

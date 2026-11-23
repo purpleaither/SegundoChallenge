@@ -1,5 +1,6 @@
 "use client";
-import { Mic, Square, Volume2, Pause, Play } from 'lucide-react';
+import { useEffect, useState } from "react";
+import { Mic, Square, Volume2, Pause, Play, RotateCcw } from 'lucide-react';
 import type { useVoiceInput } from '../hooks/use-voice-input';
 import type { useSpeechOutput } from '../hooks/use-speech-output';
 
@@ -10,15 +11,20 @@ export function RecordButton({ voice, draft, disabled, descriptionId, onBeforeSt
 }
 export function VoiceInputStatus({ voice, id }: { voice: InputVoice; id: string }) {
   return <div className="voice-input-status" id={id}>
-    <p role="status" aria-live="polite">{voice.active ? voice.status === 'requesting' ? 'Aguardando o microfone…' : voice.status === 'stopping' ? 'Finalizando a transcrição…' : 'Gravando. Fale sua dúvida e use o botão parar ao terminar.' : voice.notice || (voice.supported === false ? 'Gravação indisponível neste navegador. Você pode digitar sua dúvida.' : '')}</p>
+    <p role="status" aria-live="polite">{voice.active ? voice.status === 'requesting' ? 'Aguardando o microfone…' : voice.status === 'stopping' ? 'Finalizando a transcrição…' : 'Ouvindo e transcrevendo… Use parar ao terminar.' : voice.notice || (voice.supported === false ? 'Gravação indisponível neste navegador. Você pode digitar sua dúvida.' : '')}</p>
   </div>;
 }
 export function ReplyAudio({ speech, id, text, label, buttonText = "Ouvir resposta" }: { speech: ReturnType<typeof useSpeechOutput>; id: string; text: string; label: string; buttonText?: string }) {
+  const [hasPlayed, setHasPlayed] = useState(false);
+  useEffect(() => { setHasPlayed(false); }, [id, text]);
+  function playFromStart() { setHasPlayed(true); speech.play(id, text); }
   const selected = speech.state.id === id;
   const playing = selected && speech.state.status !== 'idle';
   return <div className="reply-audio" role="group" aria-label={label}>
-    {!playing && <button type="button" className="voice-action voice-listen" disabled={speech.supported !== true} onClick={() => speech.play(id, text)} aria-label={`Ouvir ${label}`}><Volume2 size={19} aria-hidden="true" />{buttonText}</button>}
+    {!playing && <button type="button" className="voice-action voice-listen" disabled={speech.supported !== true} onClick={playFromStart} aria-label={hasPlayed ? `Ouvir novamente ${label}` : `Ouvir ${label}`}>
+      {hasPlayed ? <RotateCcw size={19} aria-hidden="true" /> : <Volume2 size={19} aria-hidden="true" />}{hasPlayed ? "Ouvir novamente" : buttonText}</button>}
     {playing && <>
+      <button type="button" className="voice-action" onClick={playFromStart} aria-label={`Repetir ${label} desde o início`}><RotateCcw size={19} aria-hidden="true" />Repetir</button>
       {speech.state.status === 'speaking' && <button type="button" className="voice-action" onClick={speech.pause} aria-label={`Pausar ${label}`}><Pause size={19} aria-hidden="true" />Pausar</button>}
       {speech.state.status === 'paused' && <button type="button" className="voice-action" onClick={speech.resume} aria-label={`Continuar ${label}`}><Play size={19} aria-hidden="true" />Continuar</button>}
       <button type="button" className="voice-action" onClick={speech.stop} aria-label={`Parar leitura da ${label}`}><Square className="voice-stop-symbol" size={18} aria-hidden="true" />Parar</button>

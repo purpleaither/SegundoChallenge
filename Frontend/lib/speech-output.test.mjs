@@ -58,3 +58,21 @@ test('permission, silence and network failures have actionable messages', () => 
   assert.match(voiceInputError('no-speech'), /ouvir/);
   assert.match(voiceInputError('network'), /conexão/);
 });
+
+test('replay of a paused response restarts at its first chunk and releases pause', () => {
+  const ctx = setup(); const text = 'Começo da resposta. '.repeat(30);
+  ctx.controller.play('a', text); const first = ctx.utterances[0];
+  ctx.controller.pause(); ctx.controller.play('a', text);
+  assert.equal(ctx.utterances[1].text, first.text);
+  assert.equal(ctx.states.at(-1).status, 'speaking');
+  assert.equal(ctx.counts().resumed, 1);
+  const count = ctx.utterances.length; first.onend();
+  assert.equal(ctx.utterances.length, count);
+});
+test('a completed response can be replayed from the start', () => {
+  const ctx = setup(); ctx.controller.play('a', 'Resposta inteira.');
+  ctx.utterances[0].onend(); assert.equal(ctx.states.at(-1).status, 'idle');
+  ctx.controller.play('a', 'Resposta inteira.');
+  assert.equal(ctx.utterances[1].text, 'Resposta inteira.');
+  assert.equal(ctx.states.at(-1).status, 'speaking');
+});

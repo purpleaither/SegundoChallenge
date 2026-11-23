@@ -1,3 +1,16 @@
+> Atualização: a rota ativa agora é `/api/orientar`, integrada ao módulo
+> `sistema_multiagente`. Há Markdown, apoio separado e texto preparado para Piper.
+> [Configuração e limites atuais](../Back-end/INTEGRACAO.md).
+> Referências a `/api/assistant` e T5 abaixo registram etapas anteriores.
+
+# GuIA Social — frontend
+
+A interface usa a API atual do GitHub em `Back-end/main.py`, rota `/api/assistant`.
+Consulte [como iniciar a integração](../Back-end/INTEGRACAO.md).
+A resposta completa fica visível; fontes e detalhes dos programas ficam logo abaixo.
+O endpoint histórico `/api/perguntar` e as descrições históricas abaixo sobre `rag/`
+não representam mais o caminho ativo das perguntas.
+
 # Frontend — GovernancIA
 
 Interface de chat em Next.js. As perguntas vão para `/api/perguntar`, que o Next repassa para a
@@ -93,29 +106,39 @@ node --experimental-strip-types --test lib/readable-text.test.mjs lib/benefit-ca
 
 ## Entrada e saída de voz (frontend)
 
-O início e a conversa têm botão de microfone. O frontend usa `SpeechRecognition`
-(ou `webkitSpeechRecognition`) em pt-BR quando o navegador oferece o serviço.
-A transcrição preenche o campo, permanece editável após parar e só é enviada à API
-quando o usuário confirma o envio. Iniciar/parar também funciona pelo teclado no
-botão. Há estados de espera de permissão, gravação, finalização e falha.
-O serviço de reconhecimento pode processar a fala online; a aplicação não cria nem
-persiste arquivos de áudio. A API atual continua recebendo apenas texto.
+O início e a conversa têm botão de microfone. A captura usa AudioWorklet e a
+transcrição progressiva ocorre no serviço local Whisper via `/api/stt` (porta 8002).
+Prévias aparecem durante a fala com o modelo small, sem duplicar o rascunho.
+Ao parar, o microfone é liberado e large-v3-turbo revisa a transcrição final.
+O usuário revisa o texto antes de enviar. Há limite de 60 segundos e 8 MiB,
+tratamento de permissão, silêncio, falha de rede e cancelamento na navegação.
+Veja [instalação e limites do STT](../rag/STT.md). HTTPS ou localhost é necessário.
 
-Respostas do assistente têm “Ouvir resposta”, pausar, continuar e parar com
-`speechSynthesis`. A leitura é dividida em trechos para evitar corte de respostas
-longas. Não há reprodução automática. Só uma resposta é lida por vez; nova
-conversa, navegação e desmontagem encerram a leitura/captura da aplicação.
-Iniciar gravação interrompe a leitura e iniciar leitura interrompe a gravação.
+Respostas do assistente usam o serviço local Piper em pt-BR por `/api/tts`.
+Há controles de ouvir, pausar, continuar, parar e repetir. A leitura ocorre em
+trechos, com antecipação do próximo áudio e cache em memória para replay.
+Não há reprodução automática. Nova conversa e navegação encerram a leitura e
+limpam o cache. Iniciar gravação interrompe a leitura e vice-versa.
 
-Quando o navegador não oferece uma das APIs, o controle fica indisponível e a
-interface explica a alternativa por texto. Permissões reais, motores de voz e
-qualidade/latência variam por navegador. Isto não comprova os requisitos de STT,
-TTS neural e streaming no servidor (RIA03–RIA05), nem o limite de sessão RNF06.
+Veja [configuração e limites do TTS](../rag/TTS.md). O serviço deve estar iniciado
+na porta 8001, ou configurado via `TTS_URL`. Falhas são apresentadas junto ao player.
+A gravação depende do suporte a AudioWorklet e da permissão de microfone. Os testes automatizados não
+comprovam MOS, latência sob carga, captura real do microfone ou o limite RNF06.
 
 Testes com motores simulados, sem captura real de microfone:
 
 ```bash
-node --experimental-strip-types --test lib/speech-output.test.mjs
+node --experimental-strip-types --test lib/*.test.mjs
 ```
 
 Referência: https://developer.mozilla.org/en-US/docs/Web/API/Web_Speech_API
+
+### Leitura automática opcional
+
+A conversa oferece “Ler novas respostas automaticamente”, desativada por padrão.
+A escolha é salva no navegador. Somente respostas recebidas com a opção ativa,
+conversa aberta e microfone inativo iniciam a leitura; sugestões, mensagem inicial,
+erros e histórico não iniciam áudio automaticamente. Desativar interrompe a leitura.
+Os controles de pausa, parada e replay continuam disponíveis. O navegador pode
+bloquear reprodução automática; nesse caso o player informa a falha e permite
+iniciar a leitura pelo botão.

@@ -20,6 +20,7 @@ from pydantic import BaseModel, Field
 
 from buscar import ficha, resposta_natural
 from experimentos import PASTA_RES, buscar_prog, colecao_bge
+from tts_service import router as tts_router
 
 LIMIAR_PADRAO = 0.532
 
@@ -47,6 +48,7 @@ async def lifespan(_app: FastAPI):
 
 
 app = FastAPI(title="GovernancIA API", lifespan=lifespan)
+app.include_router(tts_router)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=os.environ.get("CORS_ORIGINS", "http://localhost:3000").split(","),

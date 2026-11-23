@@ -55,6 +55,6 @@ export class SpeechOutput {
   }
   pause() { if (this.state.status === 'speaking') { this.engine.pause(); this.update({ ...this.state, status: 'paused' }); } }
   resume() { if (this.state.status === 'paused') { this.engine.resume(); this.update({ ...this.state, status: 'speaking' }); } }
-  stop() { this.generation++; if (this.state.id) this.engine.cancel(); this.utterance = null; this.update(idle()); }
-  dispose() { this.generation++; this.notify = () => {}; if (this.state.id) this.engine.cancel(); this.utterance = null; }
+  stop() { this.generation++; if (this.state.id) this.engine.cancel(); if (this.state.status === 'paused') this.engine.resume(); this.utterance = null; this.update(idle()); }
+  dispose() { this.generation++; this.notify = () => {}; if (this.state.id) this.engine.cancel(); if (this.state.status === 'paused') this.engine.resume(); this.utterance = null; }
 }

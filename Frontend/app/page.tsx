@@ -16,15 +16,14 @@ import {
   MessageCircle,
   Plus,
   Search,
-  ShieldCheck,
   Sparkles,
   Users,
   Wallet,
   Zap,
 } from "lucide-react";
-import { perguntar, type Programa } from "@/lib/api";
-import { ReadingTopics } from "./components/reading-topics";
-import BenefitCard from "./components/benefit-card";
+import { perguntar, type Programa, type Referencia } from "@/lib/api";
+import { speechText } from "@/lib/speech-text";
+import AssistantMessage from "./components/assistant-message";
 import { useVoiceInput } from "./hooks/use-voice-input";
 import { useSpeechOutput } from "./hooks/use-speech-output";
 import { RecordButton, VoiceInputStatus, ReplyAudio } from "./components/voice-controls";
@@ -33,7 +32,12 @@ type View = "home" | "chat" | "about";
 type Message = {
   role: "user" | "assistant";
   text: string;
+  aviso?: string;
+  apoio?: string | null;
+  fala?: string;
+  status?: string;
   programas?: Programa[];
+  fontes?: Referencia[];
   erro?: boolean;
 };
 const suggestions = [
@@ -129,6 +133,18 @@ export default function Page() {
   const [loading, setLoading] = useState(false);
   const voice = useVoiceInput(setInput);
   const speech = useSpeechOutput();
+  const [autoRead, setAutoRead] = useState(false);
+  const playbackContext = useRef({ autoRead: false, view, recording: voice.active });
+  playbackContext.current = { autoRead, view, recording: voice.active };
+  useEffect(() => {
+    try { setAutoRead(localStorage.getItem("guia-social-auto-read") === "true"); } catch { /* Memory-only preference. */ }
+  }, []);
+  function changeAutoRead(enabled: boolean) {
+    setAutoRead(enabled);
+    playbackContext.current.autoRead = enabled;
+    try { localStorage.setItem("guia-social-auto-read", String(enabled)); } catch { /* Memory-only preference. */ }
+    if (!enabled) speech.stop();
+  }
   const audio = { ...speech, play: (id: string, text: string) => { voice.cancel(); speech.play(id, text); } };
   const requestRef = useRef<AbortController | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
@@ -145,11 +161,11 @@ export default function Page() {
   }, [messages, loading, view]);
   useEffect(() => () => requestRef.current?.abort(), []);
   function navigate(next: View) {
-    if (next !== view) { voice.cancel(); speech.stop(); }
+    if (next !== view) { voice.cancel(); speech.reset(); }
     setView(next);
   }
   function newChat() {
-    voice.cancel(); speech.stop();
+    voice.cancel(); speech.reset();
     requestRef.current?.abort();
     requestRef.current = null;
     setLoading(false);
@@ -168,11 +184,16 @@ export default function Page() {
     const controller = new AbortController();
     requestRef.current = controller;
     try {
-      const { resposta, programas } = await perguntar(text, controller.signal);
+      const { resposta, programas, aviso, apoio, fala, status, fontes } = await perguntar(text, controller.signal);
+      if (controller.signal.aborted || requestRef.current !== controller) return;
       setMessages((current) => [
         ...current,
-        { role: "assistant", text: resposta, programas },
+        { role: "assistant", text: resposta, programas, aviso, apoio, fala, status, fontes },
       ]);
+      const context = playbackContext.current;
+      if (context.autoRead && context.view === "chat" && !context.recording && (status !== "erro_api" || apoio)) {
+        speech.play(`reply-${messages.length + 1}`, speechText(fala ?? [resposta, apoio].filter(Boolean).join("\n\n")));
+      }
     } catch (error) {
       if (!controller.signal.aborted)
         setMessages((current) => [
@@ -333,10 +354,13 @@ export default function Page() {
                 <span className="assistant-icon">
                   <MessageCircle size={28} />
                 </span>
-                <div>
+                <div className="chat-heading-copy">
                   <h1>
                     Gu<span className="brand-ia">IA</span> Social
                   </h1>
+                  <p className="chat-privacy-notice">
+                    Não compartilhe dados pessoais ou bancários.
+                  </p>
                 </div>
               </div>
               <div className="chat-scroll">
@@ -349,7 +373,7 @@ export default function Page() {
                   {messages.length === 0 && (
                     <div className="chat-welcome">
                       <h2>Como posso ajudar?</h2>
-                      <ReplyAudio speech={audio} id="welcome" text={`Como posso ajudar? Você pode perguntar: ${suggestions.join(". ")}`} label="orientações da conversa" buttonText="Ouvir orientações" />
+                      <ReplyAudio speech={audio} id="welcome" text="Como posso ajudar?" label="mensagem inicial" buttonText="Ouvir mensagem" />
                       <div className="chat-suggestions">
                         {suggestions.map((s) => (
                           <button key={s} onClick={() => sendMessage(s)}>
@@ -365,32 +389,11 @@ export default function Page() {
                       <span className="message-label">
                         {m.role === "assistant" ? "GuIA Social" : "Você"}
                       </span>
-                      {m.role === "assistant" && <ReplyAudio speech={audio} id={`reply-${i}`} text={m.text} label={`resposta ${i + 1}`} />}
-                      <div className={`bubble ${m.erro ? "error" : ""}`}>
-                        {m.role === "assistant" && !m.erro
-                          ? m.programas?.length
-                            ? `Encontrei ${m.programas.length === 1 ? "um programa que pode" : `${m.programas.length} programas que podem`} ter relação com a sua situação:`
-                            : <ReadingTopics text={m.text} />
-                          : m.text}
-                      </div>
-                      {!!m.programas?.length && (
-                        <>
-                          <div className="benefit-cards">
-                            {m.programas.map((p) => (
-                              <BenefitCard key={p.programa} programa={p} />
-                            ))}
-                          </div>
-                          <details className="response-details">
-                            <summary>Ver resposta completa da base <ChevronDown size={18} /></summary>
-                            <div className="source-response">{m.text}</div>
-                          </details>
-                          <p className="result-notice">
-                            <Info size={16} />
-                            Confirme os requisitos no órgão responsável ou no
-                            CRAS.
-                          </p>
-                        </>
-                      )}
+                      {m.role === "assistant" && <ReplyAudio speech={audio} id={`reply-${i}`} text={speechText(m.fala ?? [m.text, m.apoio].filter(Boolean).join("\n\n"))} label={`resposta ${i + 1}`} />}
+                      {m.role === "assistant" && !m.erro
+                        ? <AssistantMessage text={m.text} programas={m.programas} notice={m.aviso} sources={m.fontes} support={m.apoio} failed={m.status === "erro_api"} />
+                        : <div className={`bubble ${m.erro ? "error" : ""}`}>{m.text}</div>}
+
                     </div>
                   ))}
                   {loading && (
@@ -446,11 +449,11 @@ export default function Page() {
                     <ArrowUp size={23} />
                   </button>
                 </form>
+                <label className="auto-read-preference">
+                  <input type="checkbox" checked={autoRead} onChange={(event) => changeAutoRead(event.target.checked)} disabled={speech.supported === false} />
+                  <span>Ler novas respostas automaticamente</span>
+                </label>
                 <VoiceInputStatus voice={voice} id="chat-voice-status" />
-                <p>
-                  <ShieldCheck size={14} />
-                  Não compartilhe dados pessoais ou bancários.
-                </p>
               </div>
             </>
           )}
