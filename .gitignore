@@ -1,0 +1,39 @@
+# Ambientes virtuais
+.venv/
+venv/
+
+# Python
+__pycache__/
+*.pyc
+
+# Índice vetorial local
+Dados-RAG/RAG/chroma_db/
+
+# Ambientes locais dos serviços de áudio
+.venv-stt/
+.venv-tts/
+Dados-RAG/RAG/.venv-stt/
+Dados-RAG/RAG/.venv-tts/
+Dados-RAG/RAG/models-stt/
+Dados-RAG/RAG/voices/
+
+# Sistema / editores
+.DS_Store
+.vscode/
+.idea/
+
+# Segredos
+.env
+
+# Frontend (Next.js)
+Front-end/node_modules/
+Front-end/.next/
+Front-end/next-env.d.ts
+Front-end/*.tsbuildinfo
+Front-end/.env*.local
+node_modules/
+.next/
+
+# Backend atual: índices e dados de execução locais
+Dados-RAG/vetor-v3/
+Back-end/data/

@@ -1,0 +1,11 @@
+ .venv/
+ .venv-stt/
+ .venv-tts/
+__pycache__/
+*.pyc
+chroma_db/
+ models-stt/
+ voices/
+resultados/*.txt
+Dockerfile
+.dockerignore

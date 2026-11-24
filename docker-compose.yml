@@ -1,0 +1,89 @@
+# Sobe tudo junto: Ollama, API Python, serviços de áudio e Frontend Next.js
+#   docker compose up --build
+#   abra http://localhost:3000
+#
+# Na primeira vez o serviço ollama-pull baixa o bge-m3 (~1,2 GB) e a API indexa a base
+# ao iniciar (alguns minutos em CPU; o frontend só sobe depois). Os dois ficam salvos em
+# volumes, então as próximas subidas são rápidas.
+
+services:
+  ollama:
+    image: ollama/ollama:0.32.0
+    volumes:
+      - ollama:/root/.ollama
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  # Executa uma vez: baixa o modelo de embeddings e termina
+  ollama-pull:
+    image: ollama/ollama:0.32.0
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+    entrypoint: ["ollama", "pull", "bge-m3"]
+    depends_on:
+      ollama:
+        condition: service_healthy
+    restart: "no"
+
+  backend:
+    build:
+      context: .
+      dockerfile: Back-end/Dockerfile
+    environment:
+      OLLAMA_URL: http://ollama:11434
+      VECTOR_DB_PATH: /app/Dados-RAG/vetor-v3
+      CORS_ORIGINS: http://localhost:3000
+      GOOGLE_API_KEY: ${GOOGLE_API_KEY:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      LLM_FALLBACK_ORDER: ${LLM_FALLBACK_ORDER:-}
+    volumes:
+      - chroma:/app/Dados-RAG/vetor-v3
+    ports:
+      - "8000:8000"
+    depends_on:
+      ollama-pull:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  stt:
+    build:
+      context: ./Dados-RAG/RAG
+      dockerfile: STT.Dockerfile
+    ports:
+      - "8002:8002"
+    restart: unless-stopped
+
+  tts:
+    build:
+      context: ./Dados-RAG/RAG
+      dockerfile: TTS.Dockerfile
+    ports:
+      - "8001:8001"
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./Front-end
+      dockerfile: Dockerfile
+      args:
+        BACKEND_URL: http://backend:8000
+        STT_URL: http://stt:8002
+        TTS_URL: http://tts:8001
+    ports:
+      - "3000:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+      stt:
+        condition: service_healthy
+      tts:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  ollama:
+  chroma:

@@ -1,0 +1,14 @@
+.git
+**/.venv
+**/venv
+**/__pycache__
+**/*.pyc
+Frontend/node_modules
+Frontend/.next
+rag/chroma_db
+rag/voices
+rag/models-stt
+Dados-RAG/vetor-v3
+Back-end/data
+**/.env
+**/.env.*
