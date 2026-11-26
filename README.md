@@ -39,7 +39,7 @@ suficiente.
 5. `compose_answer()` monta uma resposta determinística com os dados recuperados e a API retorna as fontes/citações
 disponíveis.
 
-> O limiar padrão usado no código é de: `0.532`. Esse valor é experimental e não deve ser tratado como garantia de precisão, antes precisa ser reavaliado com um conjunto independente de perguntas sempre que a base ou o modelo mudar.
+> O limiar padrão `0.532` foi mantido após uma validação estratificada (20 casos para ajuste, 7 para holdout; seed 42): deixou passar as 21 consultas em escopo e filtrou as 6 fora de escopo. No holdout, classificou as 7 corretamente. A amostra é pequena e curada; isso não garante precisão nem substitui validação com perguntas independentes quando a base ou o modelo mudar.
 
 ## Organização dos arquivos 🧱
 
@@ -76,19 +76,20 @@ disponíveis.
 ```
 
 - `Back-end/`: API FastAPI e testes do servidor.
-- `Front-end/`: Arquivos da interface aberta no navegador, contém: HTML que define o conteúdo, CSS estilização da página e JavaScript comportamento.
-- `Front-end/app`: Tela principal do chat, responsável por enviar perguntas à API, atualizar a conversa e apresentar respostas e fontes. O sufixo .js identifica os arquivos JavaSript.
-`Dados-RAG/`: Dados usados pela aplicação, incluindo o CSV dos programas e os módulos Python do RAG. No Windows, o índice vetorial fica por padrão fora do repositório em %LOCALAPPDATA%\AssistenteVirtualDF\vetor-v2.
+- `Front-end/`: Interface web em Next.js, React e TypeScript.
+- `Front-end/app/`: Tela principal do chat, responsável por enviar perguntas à API, atualizar a conversa e apresentar respostas e fontes.
+- `Dados-RAG/`: Dados da aplicação, incluindo o CSV dos programas e os módulos Python do RAG. No Windows, o índice vetorial fica por padrão em `%LOCALAPPDATA%\AssistenteVirtualDF\vetor-v3`, fora do repositório.
 - `Dados-RAG/programas_sociais_legislacao_links_oficiais.csv`: base estruturada dos 42 programas.
 - `Dados-RAG/RAG/`: preparação dos dados, ingestão, recuperação, respostas determinísticas, avaliação RAGAS e testes.
 - `Dados-RAG/RAG/base/`: fichas Markdown derivadas do CSV.
 - `Dados-RAG/RAG/fontes/`: textos legislativos oficiais baixados.
-- `Dados-RAG/testes-automatizados/`: Testes unitários e script executar_testes.py, também inicia a bateria RAGAS integrada.
-- `Dados-RAG/avaliacao/`: Casos versionados do teste integrado RAG + RAGAS, os resultados locais são gerados ao executar a avaliação.
-- `Dados-RAG/__init__.py`: Arquivo Python que identifica Dados como pacote e contém uma breve descrição. Em algumas versões do Python, os diretórios podem ser importados sem ele, mas matemos para deixar explicito a estrutura do pacote e é convencional.
-- `COMO_EXECUTAR.txt`: Comandos no terminal para instalar dependências, iniciar o Ollama, testar respostas, roda testes automáticos e avaliar com RAGAS.
+- `Dados-RAG/RAG/testes-automatizados/`: Testes unitários e script `executar_testes.py`, que também inicia a avaliação RAGAS integrada.
+- `Dados-RAG/RAG/avaliacao/`: Casos versionados do teste integrado RAG + RAGAS; os resultados são gerados ao executar a avaliação.
+- `Dados-RAG/__init__.py`: Arquivo Python que identifica Dados como pacote e contém uma breve descrição. Em algumas versões do Python, os diretórios podem ser importados sem ele, mas mantemos para deixar explícita a estrutura do pacote.
+- `Como_executar_win.md`: Comandos do Windows para instalar dependências, iniciar os serviços, testar respostas e executar a avaliação.
+- `models-stt/`: Cache LFS versionado de `large-v3-turbo` (~1,6 GB). Os scripts atuais não o usam: a execução local usa `Dados-RAG/RAG/models-stt` e o Docker baixa os modelos no build.
 - `__pycache__/`: Pasta criada automaticamente pelo Python para guardar bytecode compilado (.pyc) e acelerar importações futuras. 
-- `%LOCALAPPDATA%\AssistenteVirtualDF\vetor-v2`: Banco vetorial persistente do ChromaDB no Windows. É derivado dos dados e recriável com script de ingestão.
+- `%LOCALAPPDATA%\AssistenteVirtualDF\vetor-v3`: Banco vetorial persistente do ChromaDB no Windows. É derivado dos dados e recriável com script de ingestão.
 - `Documentos/`: Relatórios e documentos do projeto.
 
 ## Instalação e execução no Windows 💻
@@ -114,8 +115,8 @@ python -m pip install --upgrade pip
 python -m pip install -r .\Back-end\requirements.txt
 ```
 
-As dependências do RAG e o ChromaDB são declaradas em `Dados-RAG/RAG/requeriments.txt`. O arquivo `Back-end/requirements.txt`
-instala FastAPI, Uvicom e ChromaDB para a API principal, use o arquivo do RAG caso queira preparar um ambiente
+As dependências do RAG e o ChromaDB são declaradas em `Dados-RAG/RAG/requirements.txt`. O arquivo `Back-end/requirements.txt`
+instala FastAPI, Uvicorn e ChromaDB para a API principal; use o arquivo do RAG caso queira preparar um ambiente
 dedicado para esses módulos:
 
 ```powershell
@@ -172,7 +173,7 @@ npm run dev
 
 ## Testes 🧩
 
-Os testes unitários cobrem os módulos do back-end e do RAG. Eles não exigem Ollama em execução, índice vetorial previamente
+Os testes unitários cobrem o back-end, o sistema multiagente e o RAG. Eles não exigem Ollama em execução, índice vetorial previamente
 criado ou uma chave de API.
 
 ```powershell
@@ -184,7 +185,7 @@ python .\Dados-RAG\RAG\testes-automatizados\executar_testes.py
 - A presença de um programa nos resultados não significa que a pessoa cumpre seus critérios.
 - Alguns critérios estão parciais ou não foram especificados na base. A resposta deve preservar essa incerteza e encaminhar a pessoa à fonte ou ao órgão responsável.
 - Similaridade vetorial não é uma classificação infalível de intenção. Perguntas válidas podem não recuperar contexto suficiente e perguntas fora do escopo podem se aproximar semanticamente de documentos da base.
-- O limiar 0.532 é experimental. Recalibre-o com perguntas independentes e mantenha casos de teste separados dos dados usados no ajuste.
+- A validação estratificada (20 casos para ajuste, 7 para holdout; seed 42) manteve o limiar 0.532: 21/21 consultas em escopo passaram pelo limiar e 6/6 fora de escopo foram filtradas; o holdout foi classificado corretamente. Essa amostra curada é limitada; use perguntas independentes para futuras recalibrações.
 - Os resultados experimentais e de avaliação são fotografias de conjuntos específicos; não são garantia de desempenho futuro nem de atualização normativa.
 
 ## Multimodalidade: texto e áudio 🎙️
@@ -192,14 +193,15 @@ python .\Dados-RAG\RAG\testes-automatizados\executar_testes.py
 O assistente admite entrada por texto e voz em português:
 
 - Entrada textual no campo de conversa;
-- Entrada falada por meio da Web Speech API do navegador;
-- Síntese de áudio das respostas pela Speech Synthesis API;
-- Citações oficiais exibidas junto à resposta;
-- Cota persistente de até 10 tentativas de voz por conversa a cada 24 horas.
+- Entrada por voz gravada por até 60 segundos no navegador com `MediaRecorder`;
+- Transcrição local com Whisper (`POST /api/stt`), colocada no campo para revisão;
+- Leitura opcional das respostas com Piper local (`POST /api/tts`);
+- Citações oficiais exibidas junto à resposta.
 
-A modalidade de voz usa `POST /api/audio/reserve` antes de `POST /api/chat`, enquanto
-mensagens textuais usam o endpoint diretamente. A interface, a API e o uso da cota
-estão documentados em `Front-end/README.md`.
+Depois da revisão, a pergunta segue por `POST /api/orientar`. Nenhum áudio é enviado
+ao Gemini ou gravado em disco. `/api/audio/*` e `/api/chat` são rotas legadas de
+referência; a interface atual não as chama e a cota antiga não limita o STT.
+Consulte [multimodalidade/README.md](multimodalidade/README.md) para o fluxo completo.
 
 ## Colaboradores ♟️
 

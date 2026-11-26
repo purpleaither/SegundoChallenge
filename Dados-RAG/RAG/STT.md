@@ -24,6 +24,11 @@ o modelo é baixado na construção da imagem, e o frontend aguarda o healthchec
 `STT_URL` configura o destino do proxy Next (padrão http://127.0.0.1:8002);
 reinicie/recompile o frontend após alterar esse endereço.
 
+O cache `models-stt/` na raiz do repositório contém somente um snapshot
+`large-v3-turbo` do Mobius Labs e não é usado pelos comandos padrão: eles usam
+`Dados-RAG/RAG/models-stt` ou baixam os modelos durante a construção do Docker.
+Não remova o cache versionado sem confirmar se há um fluxo local que dependa dele.
+
 ## Fluxo e limites
 
 1. Ao iniciar a gravação, o navegador pede permissão para usar o microfone e

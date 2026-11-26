@@ -233,16 +233,21 @@ npm ci
 npm run dev
 ```
 
-A interface ficará disponível em `http://localhost:3000`. Deixe essa janela aberta.
-O front-end encaminha as chamadas da conversa para `POST /api/orientar` na API
-em `http://127.0.0.1:8000`; não acesse a rota `/api/perguntar`.
+A interface fica na URL informada pelo `npm run dev`. Se a porta 3000 já estiver
+ocupada, o Next inicia na 3001; nesse caso, abra `http://localhost:3001` e deixe
+essa janela aberta. Quando o Docker estiver ativo, ele pode ocupar a porta 3000:
+nesse projeto, `localhost:3000` é a interface do Docker, enquanto `localhost:3001`
+é a execução normal do Next. O front-end encaminha as chamadas para
+`POST /api/orientar` na API local em `http://127.0.0.1:8000`; não acesse
+`/api/perguntar`.
 
 ---
 
 ## 8. Demonstrar texto e áudio na interface
 
-Com a API, os serviços de áudio e o front-end ativos, abra `http://localhost:3000`
-no Chrome ou Edge.
+Com a API, os serviços de áudio e o front-end ativos, abra no Chrome ou Edge a
+URL impressa pelo `npm run dev` (por exemplo, `http://localhost:3001` se a porta
+3000 estiver ocupada).
 
 1. Digite uma pergunta e envie; confira a resposta formatada e as fontes oficiais.
 2. Clique no microfone, permita o acesso e faça uma pergunta falada. Clique de novo
@@ -303,15 +308,105 @@ Pop-Location
 
 ## Opção alternativa: Executar tudo via Docker
 
-Se você tiver o **Docker Desktop for Windows** instalado e em execução (com WSL2 habilitado):
+Use esta opção se tiver o **Docker Desktop for Windows** instalado e em execução
+com o mecanismo de contêineres Linux e WSL2 habilitados.
+
+### Primeira execução
+
+1. Abra o Docker Desktop e espere o estado **Engine running**. No PowerShell,
+   confirme que o cliente consegue falar com o daemon:
+
+```powershell
+docker version
+wsl --list --verbose
+```
+
+Em `docker version`, devem aparecer as seções `Client` e `Server`. A distribuição
+`docker-desktop` (e a distribuição Linux instalada, se houver) deve usar WSL 2.
+
+2. Em um PowerShell na raiz do projeto, inicie a composição:
 
 ```powershell
 Set-Location -LiteralPath 'D:\Documentos\Códigos IA\SegundoChallenge-main'
 docker compose up --build
 ```
 
-Acesse `http://localhost:3000`. Na primeira execução, os contêineres baixam os
-modelos do Ollama, Whisper e Piper; a criação do índice pode levar alguns minutos.
+Deixe essa janela aberta. Na primeira execução, o Docker constrói as imagens e
+baixa os modelos de áudio e o modelo de embeddings `bge-m3` (aproximadamente
+1,2 GB). Depois, o back-end cria o índice RAG usando a CPU. Em computadores mais
+simples, essa indexação pode levar dezenas de minutos. Evite fechar o Docker
+Desktop ou interromper o comando enquanto essa etapa estiver em andamento.
+
+### Como interpretar o estado dos serviços
+
+Abra uma segunda janela do PowerShell na pasta do projeto e consulte:
+
+```powershell
+docker compose ps -a
+docker compose logs --since 10m --tail 80 ollama-pull
+docker compose exec -T ollama ollama list
+```
+
+- `ollama-pull` é uma tarefa de execução única: quando termina com **`Exited (0)`**,
+  isso significa sucesso, não falha. É normal que ela não fique `Up`.
+- Se `ollama list` mostrar `bge-m3:latest`, o modelo já está no volume persistente
+  do Ollama. Mensagens antigas de `docker compose logs` podem mostrar várias
+  execuções; `--since 10m` limita a saída ao período recente.
+- Enquanto a primeira indexação acontece, o `backend` pode aparecer como
+  `health: starting`. O `frontend` só inicia depois que o back-end fica saudável.
+  Isso não indica que o `ollama-pull` está travado.
+
+Quando o back-end estiver saudável, confirme a API:
+
+```powershell
+Invoke-RestMethod http://127.0.0.1:8000/api/health
+```
+
+Em seguida, abra `http://localhost:3000`. Para parar os serviços, use `Ctrl+C` na
+janela original ou execute `docker compose down`. Os volumes com o modelo e o
+índice são mantidos; **não** use `docker compose down -v` se quiser preservá-los.
+
+### Próximas inicializações
+
+Depois que a primeira execução terminar, não é necessário reconstruir as imagens
+nem baixar o modelo novamente. Na raiz do projeto, inicie os serviços em segundo
+plano:
+
+```powershell
+docker compose up -d
+docker compose ps
+```
+
+Se o `frontend` aparecer como `Exited (143)`, ele recebeu um sinal de parada
+(por exemplo, ao fechar a janela anterior); isso não significa que o modelo do
+Ollama falhou. Quando o back-end estiver saudável, inicie novamente a interface:
+
+```powershell
+docker compose up -d frontend
+```
+
+### Se o `ollama-pull` realmente falhar
+
+Considere falha somente se `ollama-pull` terminar com código diferente de zero,
+ou se `bge-m3:latest` não aparecer em `ollama list`. Verifique primeiro se o
+Ollama está saudável e veja o erro recente:
+
+```powershell
+docker compose ps -a ollama ollama-pull
+docker compose logs --since 10m --tail 100 ollama
+docker compose logs --since 10m --tail 100 ollama-pull
+```
+
+Se o Ollama estiver saudável, mas o modelo estiver ausente, tente baixá-lo
+diretamente e confira a lista novamente:
+
+```powershell
+docker compose exec ollama ollama pull bge-m3
+docker compose exec -T ollama ollama list
+```
+
+Não apague os volumes para resolver um download lento: isso remove o modelo e o
+índice e força os downloads e a indexação a começarem de novo.
 
 ---
 
@@ -321,7 +416,7 @@ modelos do Ollama, Whisper e Piper; a criação do índice pode levar alguns min
 - **Comando `python` ou `py` não reconhecido:** Reinstale o Python marcando **"Add python.exe to PATH"** ou desative os aliases de instalador da Microsoft Store em *Configurações > Aplicativos > Configurações avançadas de aplicativo > Aliases de execução de aplicativo* (desmarque `python.exe` e `python3.exe`).
 - **Microfone bloqueado no Windows:** Vá em **Configurações > Privacidade e segurança > Microfone**, ative o *Acesso ao microfone* e garanta que a opção *Permitir que aplicativos da área de trabalho acessem seu microfone* esteja ativada.
 - **Porta 8000 ocupada:** Inicie a API em outra porta (`python -m uvicorn main:app --reload --app-dir Back-end --port 8001`) e crie `Front-end\.env.local` com `BACKEND_URL=http://127.0.0.1:8001`. Reinicie `npm run dev` após alterar essa variável.
-- **Porta 3000 ocupada:** Inicie o front-end com `npm run dev -- --port 3001`; a API continua na porta 8000. A interface ficará em `http://localhost:3001`.
+- **Porta 3000 ocupada:** Inicie o front-end com `npm run dev -- --port 3001` ou use a porta alternativa indicada pelo Next. Abra essa URL (por exemplo, `http://localhost:3001`), não a porta 3000 que pode estar atendendo ao front-end Docker. A API local continua na porta 8000.
 - **“Assistente indisponível. A configuração do serviço precisa ser concluída.”:** Configure a opção Gemini ou Ollama no passo 3, reinicie o back-end e confirme `configured: true` em `/api/assistant/status`. Para Ollama, confirme também que o serviço está ativo e que `qwen2.5:7b` foi baixado.
 - **Ollama indisponível:** Verifique se o ícone do Ollama está na bandeja do sistema (perto do relógio) ou execute `ollama serve` e confirme com `ollama list`.
 - **Modelo ausente:** Execute `ollama pull bge-m3`.

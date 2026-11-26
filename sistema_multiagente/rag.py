@@ -6,8 +6,6 @@ import unicodedata
 from pathlib import Path
 from typing import Optional
 
-import chromadb
-
 PASTA_ATUAL = Path(__file__).resolve().parent
 if str(PASTA_ATUAL) not in sys.path:
     sys.path.insert(0, str(PASTA_ATUAL))
@@ -22,19 +20,16 @@ if __package__:
 else:
     from schemas import CategoriaEncaminhamentoAjuda
 
-from RAG.dataset import build_program_chunks, read_programs, render_program_document, slug
+from RAG.dataset import read_programs, render_program_document, slug
 from RAG.rag import (
-    DATASET_VERSION,
+    RAG_MIN_SIMILARITY,
     VECTOR_DB_PATH,
     KnowledgeBase,
     ModelUnavailableError,
-    expand_question,
 )
 
 TOP_K = 4
-LIMIAR_SIMILARIDADE = 0.25
-PASTA_CHROMA_LOCAL = PASTA_DADOS_RAG / "RAG" / "chroma_db"
-COLECAO_LOCAL = f"multiagente_{slug(DATASET_VERSION)}"
+LIMIAR_SIMILARIDADE = RAG_MIN_SIMILARITY
 
 CAMPOS_PERFIL_BUSCA = (
     "palavras_chave_busca",
@@ -46,7 +41,6 @@ CAMPOS_PERFIL_BUSCA = (
 )
 
 _PROGRAMAS_POR_ID: dict[str, dict[str, str]] | None = None
-_COLECAO_FALLBACK = None
 
 
 def _mapa_programas() -> dict[str, dict[str, str]]:
@@ -57,92 +51,39 @@ def _mapa_programas() -> dict[str, dict[str, str]]:
     return _PROGRAMAS_POR_ID
 
 
-def _abrir_colecao_local():
-    """Abre (e indexa automaticamente na 1ª execução) o ChromaDB local sem depender de Ollama externo."""
-    global _COLECAO_FALLBACK
-    if _COLECAO_FALLBACK is not None:
-        return _COLECAO_FALLBACK
-
-    PASTA_CHROMA_LOCAL.mkdir(parents=True, exist_ok=True)
-    cliente = chromadb.PersistentClient(path=str(PASTA_CHROMA_LOCAL))
-    col = cliente.get_or_create_collection(
-        name=COLECAO_LOCAL,
-        metadata={"hnsw:space": "cosine"},
-    )
-    if col.count() == 0:
-        chunks = build_program_chunks(list(_mapa_programas().values()))
-        col.upsert(
-            ids=[c.id for c in chunks],
-            documents=[c.text for c in chunks],
-            metadatas=[c.metadata for c in chunks],
-        )
-    _COLECAO_FALLBACK = col
-    return _COLECAO_FALLBACK
-
-
 def _buscar_trechos_brutos(pergunta: str, k: int = TOP_K * 4) -> list[dict]:
-    """Consulta KnowledgeBase (bge-m3/Ollama) se disponível; caso contrário, usa o ChromaDB local."""
-    mapa = _mapa_programas()
-
-    if VECTOR_DB_PATH.exists():
-        kb = None
-        try:
-            kb = KnowledgeBase(path=VECTOR_DB_PATH)
-            resultados_kb = kb.search(pergunta, limit=k)
-            if resultados_kb:
-                saida = []
-                for item in resultados_kb:
-                    pid = item.get("program_id") or slug(item.get("program_name", ""))
-                    row = mapa.get(pid, {})
-                    saida.append(
-                        {
-                            "texto": item["text"],
-                            "similaridade": float(item["similarity"]),
-                            "meta": {
-                                "arquivo": pid,
-                                "programa": row.get("programa") or item.get("program_name", ""),
-                                "orgao": row.get("orgao_responsavel") or item.get("agency_id", ""),
-                                "esfera": row.get("esfera", "Federal"),
-                                "categoria": row.get("categoria", ""),
-                                "fonte": row.get("fonte_documental") or item.get("title", ""),
-                                "url": row.get("url_fonte") or item.get("url", ""),
-                            },
-                        }
-                    )
-                return saida
-        except ModelUnavailableError:
-            pass
-        finally:
-            if kb is not None:
-                kb.close()
-
-    col = _abrir_colecao_local()
-    total = col.count()
-    if total == 0:
-        return []
-
-    consulta_expandida = expand_question(pergunta)
-    r = col.query(query_texts=[consulta_expandida], n_results=min(total, max(k, 4)))
-    saida_local = []
-    for doc, meta, dist in zip(r["documents"][0], r["metadatas"][0], r["distances"][0]):
-        pid = meta.get("program_id", "")
-        row = mapa.get(pid, {})
-        saida_local.append(
-            {
-                "texto": doc,
-                "similaridade": 1.0 - float(dist),
-                "meta": {
-                    "arquivo": pid,
-                    "programa": row.get("programa") or meta.get("program_name", ""),
-                    "orgao": row.get("orgao_responsavel") or meta.get("agency_id", ""),
-                    "esfera": row.get("esfera") or meta.get("jurisdiction", "Federal"),
-                    "categoria": row.get("categoria", ""),
-                    "fonte": row.get("fonte_documental") or meta.get("title", ""),
-                    "url": row.get("url_fonte") or meta.get("url", ""),
-                },
-            }
+    """Consulta a base oficial; uma busca vazia é uma abstenção legítima."""
+    if not VECTOR_DB_PATH.exists():
+        raise ModelUnavailableError(
+            "O índice vetorial não foi encontrado. Execute a ingestão da base RAG."
         )
-    return saida_local
+
+    mapa = _mapa_programas()
+    kb = KnowledgeBase(path=VECTOR_DB_PATH)
+    try:
+        resultados_kb = kb.search(pergunta, limit=k)
+        saida = []
+        for item in resultados_kb:
+            pid = item.get("program_id") or slug(item.get("program_name", ""))
+            row = mapa.get(pid, {})
+            saida.append(
+                {
+                    "texto": item["text"],
+                    "similaridade": float(item["similarity"]),
+                    "meta": {
+                        "arquivo": pid,
+                        "programa": row.get("programa") or item.get("program_name", ""),
+                        "orgao": row.get("orgao_responsavel") or item.get("agency_id", ""),
+                        "esfera": row.get("esfera", "Federal"),
+                        "categoria": row.get("categoria", ""),
+                        "fonte": row.get("fonte_documental") or item.get("title", ""),
+                        "url": row.get("url_fonte") or item.get("url", ""),
+                    },
+                }
+            )
+        return saida
+    finally:
+        kb.close()
 
 
 def montar_contexto(programas: list[dict]) -> str:

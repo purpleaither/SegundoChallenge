@@ -1,6 +1,7 @@
 > O chat GuIA Social agora usa o LangGraph via `POST /api/orientar`.
 > Veja [configuração, contrato e validação](INTEGRACAO.md).
-> As rotas RAG e de cota descritas abaixo permanecem disponíveis separadamente.
+> `/api/assistant`, `/api/chat` e as rotas de cota de áudio permanecem disponíveis
+> como legado e não são chamadas pela interface atual.
 
 # Back-end
 
@@ -50,17 +51,17 @@ fica em `http://127.0.0.1:8000/docs`.
 
 - `GET /api/health`: Verifica se a API está disponível.
 - `GET /api/agencies` e `GET /api/benefits`: Consulta órgãos e programas.
-- `POST /api/assistant`: Busca informações sobre uma pergunta.
-- `GET /api/audio/quota` e `POST /api/audio/reserve`: Consulta e reserva o
-  limite de áudio por conversa.
-- `POST /api/chat`: Responde a uma mensagem e retorna as fontes citadas.
+- `POST /api/assistant`: Busca RAG legada, mantida para referência.
+- `GET /api/audio/quota` e `POST /api/audio/reserve`: Rotas legadas de consulta e
+  reserva de áudio; não limitam o fluxo atual de voz via `/api/stt`.
+- `POST /api/chat`: Rota legada de resposta RAG; a interface usa `/api/orientar`.
 
 ## Configuração
 
 - `OLLAMA_URL`: Endereço do Ollama; padrão `http://127.0.0.1:11434`.
 - `OLLAMA_EMBEDDING_MODEL`: Modelo de embeddings; padrão `bge-m3`.
 - `RAG_MIN_SIMILARITY`: Limiar da busca com padrão `0.532`.
-- `VECTOR_DB_PATH`: Laminho do índice ChromaDB. No Windows, o padrão é
+- `VECTOR_DB_PATH`: Caminho do índice ChromaDB. No Windows, o padrão é
   `%LOCALAPPDATA%\AssistenteVirtualDF\vetor-v3`.
 - `AUDIO_LIMIT_DB`: Caminho do SQLite usado para os limites de áudio; por
   padrão, `Back-end/data/audio_limits.sqlite3`.

@@ -3,7 +3,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1 STT_MODEL_DI
 WORKDIR /app
 COPY requirements-stt.txt .
 RUN pip install -r requirements-stt.txt
-RUN python -c "from faster_whisper import WhisperModel; [WhisperModel(name, device='cpu', compute_type='int8', download_root='/app/models') for name in ['small', 'large-v3-turbo']]"
+RUN python -c "from faster_whisper import WhisperModel; WhisperModel('small', device='cpu', compute_type='int8', download_root='/app/models')"
 COPY stt_service.py .
 RUN useradd --create-home --uid 1000 app && chown -R app:app /app
 USER app

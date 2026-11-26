@@ -1,7 +1,9 @@
-"""API HTTP do assistente: expõe a configuração escolhida nos experimentos (T5) para o frontend.
+"""API HTTP legada GovernancIA baseada nos experimentos T5; não usada pela interface atual.
 
 T5 = busca com embeddings bge-m3 (via Ollama) + limiar de abstenção + resposta por modelo de
 texto fixo (sem LLM). Foi a melhor combinação em resultados/resumo.json.
+
+A API ativa do assistente fica em Back-end/main.py.
 
 Pré-requisitos: Ollama rodando com `bge-m3` e `ingestao.py` já executado.
 Uso (dentro de rag/):

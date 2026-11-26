@@ -1,3 +1,28 @@
 id,user_input,escopo,faithfulness,context_utilization,context_precision,context_recall,rank_programa_esperado,acerto_top_1,acerto_top_k,resposta_com_contexto_em_escopo,abstencao_correta,decisao_escopo_correta,erros
 dentro-1,"Estou desempregada e tenho três filhos, tenho direito a algum auxílio?",True,1.0,0.0,0.0,0.0,3,False,True,True,,True,{}
 dentro-2,tem ajuda para comprar o botijão de gás?,True,1.0,0.49999999995,0.99999999995,0.875,1,True,True,True,,True,{}
+dentro-3,"minha conta de luz tá muito cara, tem desconto?",True,1.0,0.249999999975,0.249999999975,1.0,1,True,True,True,,True,{}
+dentro-4,tem desconto na conta de água?,True,0.75,0.0,0.0,1.0,1,True,True,True,,True,{}
+dentro-5,minha mãe é idosa e não tem renda nenhuma,True,1.0,0.99999999995,0.8333333332916666,1.0,1,True,True,True,,True,{}
+dentro-6,"meu filho é deficiente, tem algum benefício?",True,1.0,0.0,0.4166666666458333,1.0,2,False,True,True,,True,{}
+dentro-7,quero fazer faculdade mas não tenho dinheiro,True,0.625,0.0,0.49999999995,1.0,2,False,True,True,,True,{}
+dentro-8,como faço pra não pagar a inscrição do enem?,True,0.5555555555555556,0.0,0.0,1.0,1,True,True,True,,True,{}
+dentro-9,tem isenção pra taxa de concurso?,True,1.0,0.9999999999,0.0,1.0,1,True,True,True,,True,{}
+dentro-10,"meu filho tá no ensino médio, tem alguma ajuda?",True,1.0,0.0,0.9999999999,1.0,1,True,True,True,,True,{}
+dentro-11,"quero comprar uma casa, tem programa do governo?",True,0.0,0.9999999999,0.9999999999,1.0,1,True,True,True,,True,{}
+dentro-12,preciso de remédio de graça,True,0.875,0.9999999999,0.0,1.0,1,True,True,True,,True,{}
+dentro-13,onde consigo absorvente de graça?,True,1.0,0.0,0.0,0.8,1,True,True,True,,True,{}
+dentro-14,moro na roça e falta água por causa da seca,True,0.5,0.9999999999,0.99999999995,1.0,1,True,True,True,,True,{}
+dentro-15,"sou dona de casa, posso pagar o INSS mais barato?",True,0.2222222222222222,0.0,0.9999999999,0.5,1,True,True,True,,True,{}
+dentro-16,deficiente pode viajar de ônibus de graça pra outro estado?,True,0.5555555555555556,0.0,0.9999999999,1.0,1,True,True,True,,True,{}
+dentro-17,"quero abrir um negócio pequeno, tem microcrédito?",True,1.0,0.49999999995,0.9999999999,1.0,1,True,True,True,,True,{}
+dentro-18,preciso de internet pro meu filho estudar,True,1.0,0.9999999999,0.9999999999,1.0,1,True,True,True,,True,{}
+dentro-19,tem cesta de comida pra família passando fome?,True,0.8333333333333334,0.0,0.0,0.75,1,True,True,True,,True,{}
+dentro-20,"estou grávida, tem acompanhamento pro bebê?",True,0.5,0.0,0.0,1.0,1,True,True,True,,True,{}
+dentro-21,quais benefícios posso ter como mãe solteira de baixa renda?,True,0.9,0.0,0.9999999999,1.0,1,True,True,True,,True,{}
+fora-1,qual o melhor time de futebol do brasil?,False,,,,,,,,,True,True,{}
+fora-2,como faço bolo de cenoura?,False,,,,,,,,,True,True,{}
+fora-3,qual a previsão do tempo pra amanhã?,False,,,,,,,,,True,True,{}
+fora-4,me recomenda um filme de terror,False,,,,,,,,,True,True,{}
+fora-5,como faço bolo de cenoura no fogão a gás?,False,,,,,,,,,True,True,{}
+fora-6,qual a previsão do tempo para quem recebe Bolsa Família?,False,,,,,,,,,True,True,{}

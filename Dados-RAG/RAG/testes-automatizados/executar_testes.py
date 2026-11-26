@@ -9,6 +9,7 @@ TEST_DIR = Path(__file__).resolve().parent
 RAG_DIR = TEST_DIR.parent
 PROJECT_ROOT = RAG_DIR.parents[1]
 BACKEND_DIR = PROJECT_ROOT / "Back-end"
+MULTIAGENT_DIR = PROJECT_ROOT / "sistema_multiagente"
 EVALUATOR = RAG_DIR / "avaliar_ragas.py"
 sys.path.insert(0, str(RAG_DIR.parent))
 
@@ -21,6 +22,13 @@ def run_unit_tests() -> bool:
             start_dir=str(BACKEND_DIR),
             pattern="test_*.py",
             top_level_dir=str(BACKEND_DIR),
+        )
+    )
+    suite.addTests(
+        loader.discover(
+            start_dir=str(MULTIAGENT_DIR),
+            pattern="test_*.py",
+            top_level_dir=str(PROJECT_ROOT),
         )
     )
     suite.addTests(

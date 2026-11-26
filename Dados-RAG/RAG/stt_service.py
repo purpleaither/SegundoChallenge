@@ -11,7 +11,7 @@ from starlette.concurrency import run_in_threadpool
 
 MAX_BYTES = 8 * 1024 * 1024
 MAX_SECONDS = 60
-MODEL_NAME = os.environ.get('STT_MODEL', 'large-v3-turbo')
+MODEL_NAME = os.environ.get('STT_MODEL', 'small')
 PREVIEW_MODEL_NAME = os.environ.get('STT_PREVIEW_MODEL', 'small')
 model = None
 preview_model = None

@@ -65,7 +65,7 @@ class TtsTests(unittest.TestCase):
         speech.lock.acquire()
         with self.assertRaises(SpeechBusy): speech.synthesize('Olá.')
         speech.lock.release()
-    def test_synthesis_uses_a_slower_speaking_rate(self):
+    def test_synthesis_uses_the_default_speaking_rate(self):
         voice = FakePiperVoice()
         with tempfile.TemporaryDirectory() as directory:
             model_path = Path(directory) / 'voice.onnx'
@@ -77,6 +77,6 @@ class TtsTests(unittest.TestCase):
         self.assertTrue((espeak_data_dir / 'phontab').is_file())
         if os.name == 'nt':
             self.assertTrue(str(espeak_data_dir).isascii())
-        self.assertEqual(voice.synthesis_config.length_scale, 1.15)
+        self.assertEqual(voice.synthesis_config.length_scale, 1.0)
 
 if __name__ == '__main__': unittest.main()

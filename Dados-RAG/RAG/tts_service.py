@@ -16,7 +16,7 @@ from pydantic import BaseModel, Field, field_validator
 from starlette.concurrency import run_in_threadpool
 
 MODEL_NAME = "pt_BR-faber-medium"
-SPEECH_LENGTH_SCALE = 1.15
+SPEECH_LENGTH_SCALE = 1.0
 DEFAULT_MODEL = Path(__file__).parent / "voices" / f"{MODEL_NAME}.onnx"
 router = APIRouter(prefix="/api/tts", tags=["TTS"])
 _WINDOWS_ESPEAK_DATA_TEMP: tempfile.TemporaryDirectory[str] | None = None

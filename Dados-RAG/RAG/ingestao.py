@@ -7,6 +7,7 @@ from pathlib import Path
 RAG_ROOT = Path(__file__).resolve().parent
 PROJECT_ROOT = RAG_ROOT.parents[1]
 BASE_PATH = RAG_ROOT / "base"
+EMBEDDING_BATCH_SIZE = 8
 sys.path.insert(0, str(RAG_ROOT.parent))
 
 from RAG.dataset import (  # noqa: E402
@@ -45,8 +46,8 @@ def main() -> int:
         source_chunks = build_official_source_chunks(rows)
         chunks = program_chunks + source_chunks
         embeddings: list[list[float]] = []
-        for offset in range(0, len(chunks), 32):
-            batch = chunks[offset : offset + 32]
+        for offset in range(0, len(chunks), EMBEDDING_BATCH_SIZE):
+            batch = chunks[offset : offset + EMBEDDING_BATCH_SIZE]
             embeddings.extend(embed_texts([chunk.text for chunk in batch]))
 
         knowledge_base = KnowledgeBase()

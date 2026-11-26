@@ -1,8 +1,8 @@
 # TTS local do GuIA Social
 
 Este serviço fica em `Dados-RAG/RAG` com o restante do código RAG.
-O serviço usa Piper em CPU e a voz `pt_BR-faber-medium`. A fala é ajustada para
-`length_scale=1.15`, um pouco mais lenta que o padrão para facilitar o acompanhamento.
+O serviço usa Piper em CPU e a voz `pt_BR-faber-medium`, na velocidade padrão
+(`length_scale=1.0`).
 Não requer chave de API. Depois de instalar dependências e baixar a voz, a síntese
 funciona localmente.
 

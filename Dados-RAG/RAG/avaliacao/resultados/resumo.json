@@ -1,46 +1,46 @@
 {
   "modelo_juiz": "qwen2.5:3b",
-  "amostras": 2,
+  "amostras": 27,
   "metricas": {
     "faithfulness": {
-      "media": 1.0,
-      "avaliadas": 2,
+      "media": 0.776984126984127,
+      "avaliadas": 21,
       "falhas": 0
     },
     "context_utilization": {
-      "media": 0.249999999975,
-      "avaliadas": 2,
+      "media": 0.3452380952059524,
+      "avaliadas": 21,
       "falhas": 0
     },
     "context_precision": {
-      "media": 0.499999999975,
-      "avaliadas": 2,
+      "media": 0.5238095237648809,
+      "avaliadas": 21,
       "falhas": 0
     },
     "context_recall": {
-      "media": 0.4375,
-      "avaliadas": 2,
+      "media": 0.9011904761904762,
+      "avaliadas": 21,
       "falhas": 0
     }
   },
   "acerto_top_1": {
-    "taxa": 0.5,
-    "casos": 2
+    "taxa": 0.8571428571428571,
+    "casos": 21
   },
   "acerto_top_k": {
     "taxa": 1.0,
-    "casos": 2
+    "casos": 21
   },
   "resposta_com_contexto_em_escopo": {
     "taxa": 1.0,
-    "casos": 2
+    "casos": 21
   },
   "abstencao_correta": {
-    "taxa": null,
-    "casos": 0
+    "taxa": 1.0,
+    "casos": 6
   },
   "decisao_escopo_correta": {
     "taxa": 1.0,
-    "casos": 2
+    "casos": 27
   }
 }

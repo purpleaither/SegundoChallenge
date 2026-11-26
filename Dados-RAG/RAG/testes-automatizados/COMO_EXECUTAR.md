@@ -19,7 +19,7 @@ python -m pip install -r .\Back-end\requirements.txt
 .\.venv\Scripts\python.exe -m pip install -r .\Back-end\requirements.txt
 ```
 
-2) Para rodar todos os testes unitários do back-end e do RAG:
+2) Para rodar todos os testes unitários do back-end, do multiagente e do RAG:
 ```powershell
 # Opção 1: 
 python .\Dados-RAG\RAG\testes-automatizados\executar_testes.py

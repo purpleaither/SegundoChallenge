@@ -59,16 +59,14 @@ Não há fallback silencioso para texto fixo, outro modelo local ou resposta sim
 
 ## Validação e limites
 
-- 13 testes originais do multiagente passaram sem chamadas ao Gemini.
-- 6 testes novos cobrem contrato HTTP, separação de apoio, filtragem de cards,
-  credenciais ausentes, ocupado e os três percursos reais do grafo com modelos simulados.
-- 44 testes backend/RAG anteriores continuam passando.
-- 37 testes frontend passaram, incluindo Markdown seguro, contrato e texto para TTS.
-- O proxy local foi verificado: rota multiagente informa 503 sem configuração,
-  e API/Piper/Whisper continuam acessíveis.
+- `executar_testes.py` cobre back-end, multiagente e RAG, sem chamar o Gemini.
+- Os testes de STT e TTS ficam em `Dados-RAG/RAG` e usam os ambientes próprios
+  dos serviços; os testes, tipo e build do frontend ficam em `Front-end`.
+- RAGAS avalia o RAG determinístico; seus resultados não medem a qualidade do
+  pipeline multiagente.
 
-Os 27 testes RAG determinísticos anteriores não validam a qualidade do multiagente.
 Não foram executadas chamadas reais ao Gemini. Não há afirmação de validação clínica,
-jurídica ou de elegibilidade. A limitação por UUID/cota de áudio e memória entre
-turnos continuam separadas: a rota nova recebe uma mensagem por execução e não
-implementa memória persistente nem ativa a reserva de áudio do endpoint `/api/chat`.
+jurídica ou de elegibilidade. A rota atual recebe uma mensagem por execução e não
+implementa memória persistente. `/api/audio/*` e `/api/chat` são mantidas para
+compatibilidade e referência; a cota de 10 tentativas do `/api/chat` não se aplica
+à interface atual nem ao endpoint `/api/stt`.

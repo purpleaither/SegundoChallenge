@@ -5,6 +5,9 @@ scripts usados para preparar, consultar e avaliar essa base. O relatório da
 comparação da Semana 3 está em
 [`Documentos/Semana03-Relatorio-LLM-RAG.pdf`](../../Documentos/Semana03-Relatorio-LLM-RAG.pdf).
 
+`api.py` é uma API antiga, independente e baseada nos experimentos T5; não é a API
+usada pela interface atual. O backend atual fica em `Back-end/main.py`.
+
 ## Arquitetura atual
 
 O fluxo atual não usa uma LLM generativa para redigir as respostas:
@@ -43,7 +46,7 @@ Para calcular métricas objetivas da recuperação:
 python .\Dados-RAG\RAG\avaliar.py
 ```
 
-Para rodar os testes automatizados do back-end e do RAG:
+Para rodar os testes automatizados do back-end, do multiagente e do RAG:
 
 ```powershell
 python .\Dados-RAG\RAG\testes-automatizados\executar_testes.py
@@ -62,7 +65,8 @@ Os serviços locais de áudio também ficam nesta pasta: `stt_service.py` (Whisp
 porta 8002) e `tts_service.py` (Piper, porta 8001). Use os guias
 [`STT.md`](STT.md) e [`TTS.md`](TTS.md), ou os comandos Windows em
 [`Como_executar_win.md`](../../Como_executar_win.md). Os ambientes virtuais e
-modelos baixados são locais e ficam ignorados pelo Git e pelo contexto Docker.
+modelos baixados são locais e ficam ignorados pelo Git e pelo contexto Docker,
+exceto o cache `models-stt/` versionado na raiz, que não é usado pelo fluxo padrão.
 
 ## Arquivos principais
 
@@ -70,6 +74,7 @@ modelos baixados são locais e ficam ignorados pelo Git e pelo contexto Docker.
 - `fontes.py` e `baixar_fontes.py`: Obtêm e leem documentos oficiais.
 - `ingestao.py`: Gera embeddings e atualiza o índice vetorial.
 - `rag.py`: Implementa a busca, o limiar de similaridade e a resposta.
+- `api.py`: API GovernancIA legada, mantida para referência dos experimentos antigos.
 - `avaliar.py`: Mede a qualidade da recuperação.
 - `avaliar_ragas.py`: Executa a avaliação RAGAS opcional.
 - `testes-automatizados/`: Testes do RAG e instruções para executá-los.

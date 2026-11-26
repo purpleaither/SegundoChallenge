@@ -3,7 +3,7 @@
 #   abra http://localhost:3000
 #
 # Na primeira vez o serviço ollama-pull baixa o bge-m3 (~1,2 GB) e a API indexa a base
-# ao iniciar (alguns minutos em CPU; o frontend só sobe depois). Os dois ficam salvos em
+# ao iniciar (pode levar dezenas de minutos em CPU; o frontend só sobe depois). Os dois ficam salvos em
 # volumes, então as próximas subidas são rápidas.
 
 services:
@@ -35,13 +35,13 @@ services:
       dockerfile: Back-end/Dockerfile
     environment:
       OLLAMA_URL: http://ollama:11434
-      VECTOR_DB_PATH: /app/Dados-RAG/vetor-v3
+      VECTOR_DB_PATH: /app/index
       CORS_ORIGINS: http://localhost:3000
       GOOGLE_API_KEY: ${GOOGLE_API_KEY:-}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       LLM_FALLBACK_ORDER: ${LLM_FALLBACK_ORDER:-}
     volumes:
-      - chroma:/app/Dados-RAG/vetor-v3
+      - chroma:/app/index
     ports:
       - "8000:8000"
     depends_on:

@@ -9,7 +9,7 @@ TESTES UNITÁRIOS
    python -m pip install -r .\Back-end\requirements.txt
    VERSÃO .VENV => .\.venv\Scripts\python.exe -m pip install -r .\Back-end\requirements.txt
 
-2) Para rodar todos os testes unitários do back-end e do RAG:
+2) Para rodar todos os testes unitários do back-end, do multiagente e do RAG:
 
    python .\Dados-RAG\RAG\testes-automatizados\executar_testes.py
    VERSÃO .VENV => .\.venv\Scripts\python.exe .\Dados-RAG\RAG\testes-automatizados\executar_testes.py
