@@ -37,3 +37,6 @@ node_modules/
 # Backend atual: índices e dados de execução locais
 Dados-RAG/vetor-v3/
 Back-end/data/
+
+Como_executar_mac*
+Como_executar_win.md
